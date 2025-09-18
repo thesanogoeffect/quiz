@@ -5,7 +5,7 @@ import altair as alt
 
 # Set page configuration
 st.set_page_config(
-    page_title="IPT Quiz Questions",
+    page_title="Intro to P&T Quiz Questions",
     page_icon="📊",
     layout="wide"
 )

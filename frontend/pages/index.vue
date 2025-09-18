@@ -161,7 +161,7 @@ useHead({
     },
   ],
   link: [
-    { rel: "icon", type: "image/png", href: "/behav-1-quiz/favicon.ico" },
+    { rel: "icon", type: "image/png", href: "favicon.ico" },
   ],
 });
 

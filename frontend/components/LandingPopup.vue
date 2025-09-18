@@ -8,7 +8,7 @@
       <v-card-title class="headline text-center">Welcome</v-card-title>
       <v-card-text class="mx-4">
         <section class="my-3">
-          <h3>Hi, welcome to the IPT Quiz!</h3>
+          <h3>Hi, welcome to the Intro to P&T Quiz!</h3>
           <v-divider class="my-3"></v-divider>
           <p>
             
