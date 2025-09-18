@@ -7,7 +7,7 @@
 
 <script setup>
 import { onMounted } from 'vue';
-import { useQuestionStore } from "./stores/question";
+import { useQuestionStore } from "#imports";
 import { useQuestionStatsStore } from '#imports';
 const questionStore = useQuestionStore();
 const questionStatsStore = useQuestionStatsStore();
