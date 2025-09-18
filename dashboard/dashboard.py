@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import altair as alt
+from pathlib import Path
 
 # Set page configuration
 st.set_page_config(
@@ -63,14 +64,30 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Function to load and process data
-def load_data():
-    try:
-        df = pd.read_csv('data/l3.csv')
-        return df
-    except FileNotFoundError:
-        data = {
-        }
-        return pd.DataFrame(data)
+def load_data() -> pd.DataFrame:
+    """Load questions CSV from common locations.
+
+    Tries, in order:
+    - dashboard/l3.csv (next to this file)
+    - data/l3.csv (repo data folder)
+
+    Returns an empty DataFrame with expected columns if not found.
+    """
+    candidates = [
+        Path(__file__).with_name('l3.csv'),
+        Path(__file__).resolve().parent.parent / 'data' / 'l3.csv',
+    ]
+
+    for path in candidates:
+        try:
+            if path.exists():
+                return pd.read_csv(path)
+        except Exception as e:
+            st.warning(f"Failed to read data from {path}: {e}")
+
+    # Fallback: empty DataFrame with expected columns to avoid KeyErrors downstream
+    st.warning("No quiz data found (looked for l3.csv). Displaying empty dashboard.")
+    return pd.DataFrame(columns=["chapter_id", "source"]) 
 
 # Main function
 def main():
@@ -96,8 +113,10 @@ def main():
     df = load_data()
 
     total_questions = len(df)
-    chapters_present = df['chapter_id'].nunique()
-    chapters_distribution = df['chapter_id'].value_counts().sort_index()
+    chapters_present = df['chapter_id'].nunique() if 'chapter_id' in df.columns else 0
+    chapters_distribution = (
+        df['chapter_id'].value_counts().sort_index() if 'chapter_id' in df.columns else pd.Series(dtype=int)
+    )
 
     # Create a list of formatted chapter names with IDs
     # formatted_chapter_names = [f"Chapters {id}: {chapter_map.get(id, f'Chapters {id}')}" for id in chapters_distribution.index]
@@ -115,7 +134,7 @@ def main():
     with col2:
         st.markdown(f"""
         <div class="stat-card">
-            <div class="stat-number">{chapters_present-1}</div>
+            <div class="stat-number">{chapters_present}</div>
             <div class="stat-label">Chapters Covered</div>
         </div>
         """, unsafe_allow_html=True)
@@ -125,7 +144,7 @@ def main():
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-number">{avg_questions:.1f}</div>
-            <div class="stat-label">Avg Questions per Chapters</div>
+            <div class="stat-label">Avg Questions per Chapter</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -134,40 +153,62 @@ def main():
     # Create Altair chart
     chart_data = chapters_distribution.reset_index()
     chart_data.columns = ['chapter_id', 'Number of Questions']
-    # Map chapter_id to the formatted chapter names
-    chart_data['Chapters'] = chart_data['chapter_id'].map(lambda x: f"Chapters {x}: {chapter_map.get(x, f'Chapters {x}')}")
-
-    chart = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Chapters', sort=None, axis=alt.Axis(labelAngle=45)), # Increased label angle for better readability
-        y='Number of Questions',
-        color=alt.Color('Chapters:N', scale=alt.Scale(scheme='category10')),
-        tooltip=['Chapters', 'Number of Questions']
-    )
-    text = chart.mark_text(
-        align='center',
-        baseline='bottom',
-        dy=-5  # Nudges text above top of bar
-    ).encode(
-        text='Number of Questions'
+    # Map chapter_id to the formatted chapter names with clean fallback
+    chart_data['Chapter'] = chart_data['chapter_id'].map(
+        lambda x: f"Chapter {x}: {chapter_map[x]}" if x in chapter_map else f"Chapter {x}"
     )
 
-    final_chart = (chart + text).interactive()
+    # Ensure numerical order and show all tick labels; only present chapters are included
+    ordered_chapters = chart_data['chapter_id'].sort_values().tolist()
 
+    if not chart_data.empty:
+        chart = alt.Chart(chart_data).mark_bar().encode(
+            x=alt.X(
+                'chapter_id:O',
+                title='Chapter',
+                scale=alt.Scale(domain=ordered_chapters),
+                sort=ordered_chapters,
+                axis=alt.Axis(labelAngle=0, labelOverlap=False, values=ordered_chapters)
+            ),
+            y=alt.Y('Number of Questions:Q', title='Number of Questions'),
+            color=alt.Color('Chapter:N', scale=alt.Scale(scheme='category10')),
+            tooltip=['Chapter', 'Number of Questions']
+        )
+        text = chart.mark_text(
+            align='center',
+            baseline='bottom',
+            dy=-5  # Nudges text above top of bar
+        ).encode(
+            text='Number of Questions'
+        )
 
-    source_chart = alt.Chart(df).mark_bar().encode(
-    x=alt.X('source:N', title='Source'),
-    y=alt.Y('count():Q', title='Number of Questions'),
-    color=alt.Color('source:N', scale=alt.Scale(scheme='set2'))  # Another discrete color palette
-)
+        final_chart = (chart + text).interactive()
+    else:
+        final_chart = None
+
+    # Build source chart only if the 'source' column exists and has data
+    source_chart = None
+    if 'source' in df.columns and df['source'].notna().any():
+        source_chart = alt.Chart(df).mark_bar().encode(
+            x=alt.X('source:N', title='Source'),
+            y=alt.Y('count():Q', title='Number of Questions'),
+            color=alt.Color('source:N', scale=alt.Scale(scheme='set2'))  # Another discrete color palette
+        )
     
 
     col1, col2 = st.columns(2)
 
     with col1:
-        st.altair_chart(final_chart, use_container_width=True)
+        if final_chart is not None:
+            st.altair_chart(final_chart, use_container_width=True)
+        else:
+            st.info("No chapter data available to display the chapter distribution.")
 
     with col2:
-        st.altair_chart(source_chart, use_container_width=True)
+        if source_chart is not None:
+            st.altair_chart(source_chart, use_container_width=True)
+        else:
+            st.info("No 'source' data available to display the source distribution.")
 
 
 if __name__ == "__main__":
