@@ -20,7 +20,7 @@ export const useQuestionStore = defineStore("question", {
     all_sources: [],
     processingAnswer: false,
 
-    DEFAULT_CHAPTERS: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+    DEFAULT_CHAPTERS: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14], // all chapters available at the start
 
     answerHistory: [], // Store the full question objects with guesses for easier UI display
     reviewMode: false,
@@ -245,7 +245,9 @@ export const useQuestionStore = defineStore("question", {
     },
     async loadQuestionsFromJSON() {
       try {
-        const response = await $fetch(`/l3.json?timestamp=${Date.now()}`);
+        // const response = await $fetch(`/l3.json?timestamp=${Date.now()}`); // to avoid caching,
+        //  but we want caching now because we won't really maintain the project now
+        const response = await $fetch('/l3.json'); // to avoid caching,
         this.all_questions = response;
         console.log("All Questions loaded from JSON:", this.all_questions.values());
       } catch (error) {
