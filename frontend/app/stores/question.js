@@ -21,7 +21,7 @@ export const useQuestionStore = defineStore("question", {
     processingAnswer: false,
 
     DEFAULT_CHAPTERS: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14], // all chapters available at the start
-
+    BANLIST_CHAPTERS: [11, 13, 16], // chapters to exclude
     answerHistory: [], // Store the full question objects with guesses for easier UI display
     reviewMode: false,
     currentReviewPosition: 0, //
@@ -259,6 +259,9 @@ export const useQuestionStore = defineStore("question", {
       let chapters = new Set();
       let sources = new Set();
       this.all_questions.forEach((question) => {
+        if (this.BANLIST_CHAPTERS.includes(question.chapter_id)) {
+          return; // skip this iteration
+        }
         chapters.add(question.chapter_id);
         sources.add(question.source);
       });
