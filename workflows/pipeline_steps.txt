@@ -1,0 +1,9 @@
+What we need to do:
+0: Get credentials and firebase_credentials from GitHub Action Secrets and create two .json that are available when the pipelines run
+1: Download any new questions from Google Sheets L1
+2: Update metadata of present questions, especially with LLM feature data
+(3): Create new questions based on LLM corrections
+(4): After that, run 2 again
+5: Generate L3
+6. Move the l3.json in to frontend/public
+7. save backup of the database

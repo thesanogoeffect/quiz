@@ -1,0 +1,47 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    paths:
+      - 'frontend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: corepack enable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      
+      # Navigate to frontend folder and install dependencies using yarn
+      - name: Install dependencies
+        run: yarn install
+        working-directory: ./frontend
+      
+      # Set NUXT_APP_BASE_URL and build the project inside the frontend folder
+      - name: Build project
+        run: NUXT_APP_BASE_URL=/behav-1-quiz/ npx nuxt build --preset github_pages
+        working-directory: ./frontend
+      
+      # Upload the build artifacts from the frontend folder
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./frontend/.output/public
+
+  # Deployment job
+  deploy:
+    needs: build
+    permissions:
+      pages: write      # to deploy to Pages
+      id-token: write   # to verify the deployment originates from an appropriate source
+    environment:
+      name: github_pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

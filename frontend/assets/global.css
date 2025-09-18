@@ -1,0 +1,30 @@
+/* Main Elements (Answer Pills, Navigation Pill, Left & Right Hand Cards) */
+.main-elements {
+    background-color: #F5E8D7; /* Soft Cream / Light Beige */
+}
+
+/* Middle Card (Question Title and Answer Options) */
+.middle-card {
+    background-color: #000000; /* Soft Pastel Blue */
+}
+
+/* Left and Right Panels (Outside the Cards) */
+.left-right-panels {
+    background-color: #D8CBBE; /* Light Taupe */
+}
+
+/* Dark mode */
+.dark-mode .main-elements {
+    background-color: #2C2C2C; /* Dark Charcoal Gray */
+    color: #E0E0E0; /* Light Gray Text */
+}
+
+.dark-mode .middle-card {
+    background-color: #1E1E1E; /* Dark Slate Gray */
+    color: #E0E0E0; /* Light Gray Text */
+}
+
+.dark-mode .left-right-panels {
+    background-color: #3B3B3B; /* Dim Gray */
+    color: #E0E0E0; /* Light Gray Text */
+}
