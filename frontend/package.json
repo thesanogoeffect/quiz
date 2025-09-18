@@ -8,7 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "start": "node .output/server/index.mjs",
+    "start": "node frontend/.output/server/index.mjs",
     "build:ipt": "NUXT_APP_BASE_URL=/ipt/ yarn build"
   },
   "dependencies": {
