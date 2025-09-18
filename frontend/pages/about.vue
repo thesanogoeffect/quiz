@@ -20,7 +20,7 @@
     </div>
     <h3>
     <NuxtLink to="/">Back to Quiz</NuxtLink>
-    <NuxtLink to="https://brm-1-questions.streamlit.app/">Available Questions</NuxtLink></h3>
+    <NuxtLink to="https://ipt-quiz.streamlit.app/">Available Questions</NuxtLink></h3>
 
     <br />
     <p>
@@ -29,28 +29,29 @@
       <b>If anything seems weird, please let me know</b>.
     </p>
 
-    <p>
-      If you want to contribute by adding your own questions, you can do so
-      <a href="https://forms.gle/jqbZyt923NuUbG446" target="_blank"> here</a
-      >.<br />
-    </p>
-
     <h1>About</h1>
     <p>
       Developed for TU/e with ❤️ by Jakub Werner -
-      <a href="mailto:j.werner@student.tue.nl">j.werner@student.tue.nl</a>
+      <a href="mailto:me@jakubwerner.com">me@jakubwerner.com</a>
     </p>
     <!-- , and
       to prof. Peter Ruijten-Dodoiu for endorsing the app for 0HV30. -->
     <p>
       Thanks to prof. Daniël Lakens for endorsing the idea and his generous support. Also
-      special thanks to Tim, Aaravee and Naomi for their help and Eline and Finn for their support 😊!<br>
-      The app uses questions from the Price book and the BRM 1 lecture slides.
+      special thanks to Tim, Aaravee and Naomi for their help, Eline, Finn and others for their support 😊!<br>
+      The app uses questions made by prev. years' students like me and from the official OpenStax book.
     </p>
     <p>
       This is currently not an official part of the TU/e course, just a passion
       project because I really like it. I am not responsible for any mistakes or
       inaccuracies.
+    </p>
+
+    <p>
+      <strong>
+        There are known performance issues on Firefox-based browsers, please
+        use Chromium-based ones (Brave, Edge, Chrome...) or Safari for the best experience.
+      </strong>
     </p>
 
     <h2>F.A.Q.:</h2>
@@ -66,22 +67,25 @@
       Maybe I'll fix it in the future.
     </p>
 
+    <p>
+      <strong
+        >Can I contribute by adding my own questions? How can I do that?</strong
+      >
+    </p>
+    <p>
+      Not right now, sorry! The effort associated with checking their quality
+      is quite high, and I don't have the time right now.
+      <br />
+    </p>
+
     <p><strong>What exactly is this and why does it exist?</strong></p>
     <p>
-      It originated as an app for Intro to PT:
-      <a
-        href="https://thesanogoeffect.github.io/intro-psych-quiz/"
-        target="_blank"
-        >https://thesanogoeffect.github.io/intro-psych-quiz/</a
-      >
+      It originated as an app for Intro to P&T, and expanded to BRM1, Social &
+      Environmental Psychology. Maybe it will grow further in the future.
 
       <br />I made it as a hobby project out of prev. years' student-made
-      questions, had to be made as a part of the course and were shared by
+      questions, the dataset was included as part of the course and was shared by
       Daniël Lakens <br />
-      People liked the app, so I made a version for this course as well.
-      <br />However, there were no questions to use this time, so I used an AI
-      RAG system to generate them. I am aware that some of them are not perfect,
-      so please flag them if you think so.
     </p>
 
     <p>
@@ -92,7 +96,7 @@
     </p>
     <p>
       Nothing so far! Thanks to Vuetify, the generous Firebase free tier, and
-      GitHub Pages & GitHub Actions! I only pay for the OpenAI tokens. If you
+      GitHub Pages & GitHub Actions! I only pay for LLM tokens. If you
       like the project and want to attempt something similar yourself, feel free
       to contact me. In case you're also a student, check out the GitHub Student
       Pack!
@@ -100,7 +104,7 @@
 
     <p><strong>How can I contact you?</strong></p>
     <p>
-      For any questions or feedback, hit me up at <a href="mailto:j.werner@student.tue.nl">j.werner@student.tue.nl</a> or
+      For any questions or feedback, hit me up at <a href="mailto:me@jakubwerner.com">me@jakubwerner.com</a> or
       WhatsApp. I have already implemented some of your suggestions, thanks for
       that!
     </p>

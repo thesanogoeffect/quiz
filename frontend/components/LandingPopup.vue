@@ -12,7 +12,7 @@
           <v-divider class="my-3"></v-divider>
           <p>
             
-              <br>You can find out how many there currently are <NuxtLink to="https://brm-1-questions.streamlit.app/" target="_blank">here</NuxtLink> 👀
+              <br>You can find out how many there currently are <NuxtLink to="https://ipt-quiz.streamlit.app/" target="_blank">here</NuxtLink> 👀
               <br>I try to go slow and prefer quality over quantity this time. They might be a bit more challenging!
             
           </p>

@@ -14,7 +14,7 @@
           ></v-app-bar-nav-icon>  
 
           <v-toolbar-title class="app_title">
-            Behavioral Research 1 Quiz
+            Intro to P&T Quiz
           </v-toolbar-title>
 
           <v-spacer></v-spacer>
@@ -152,12 +152,12 @@ import InstructionsPopup from "~/components/InstructionsPopup.vue";
 import { useGeneralStore } from "~/stores/generalstore";
 
 useHead({
-  title: "Behavioral Research 1 Quiz",
+  title: "Intro to P&T Quiz",
   meta: [
     {
       name: "description",
       content:
-        "This is a student-made quiz app for the Behavioral Research & Design 1 course at TU/e in Eindhoven",
+        "This is a student-made quiz app for the Intro to Psychology & Technology course at TU/e Eindhoven",
     },
   ],
   link: [
@@ -172,7 +172,7 @@ const mdAndUp = computed(() => display.mdAndUp.value);
 const drawer = ref(true);
 const rightDrawer = ref(true);
 
-const dashboardUrl = "https://brm-1-questions.streamlit.app/";
+const dashboardUrl = "https://ipt-quiz.streamlit.app/";
 
 const theme = useTheme();
 const questionStore = useQuestionStore();

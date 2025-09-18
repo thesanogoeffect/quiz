@@ -182,7 +182,7 @@ def give_attribution():
     rows = cursor.fetchall()
     for row in rows:
         if row[3] == 0:
-            cursor.execute("UPDATE l2 SET author = 'BRM 1 Lecturers' WHERE id = ?", (row[0],))
+            cursor.execute("UPDATE l2 SET author = 'IPT Lecturers' WHERE id = ?", (row[0],))
     conn.commit()
     conn.close()
 
