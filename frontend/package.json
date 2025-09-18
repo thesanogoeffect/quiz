@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "NUXT_APP_BASE_URL=/ipt/ yarn build",
+    "build": "NUXT_APP_BASE_URL=/ipt/ nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
