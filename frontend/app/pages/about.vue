@@ -43,7 +43,7 @@
     </p>
     <p>
       This is currently not an official part of the TU/e course, just a passion
-      project because I really like it. I am not responsible for any mistakes or
+      project because I really liked it. I am not responsible for any mistakes or
       inaccuracies.
     </p>
 
@@ -81,11 +81,13 @@
     <p><strong>What exactly is this and why does it exist?</strong></p>
     <p>
       It originated as an app for Intro to P&T, and expanded to BRM1, Social &
-      Environmental Psychology. Maybe it will grow further in the future.
+      Environmental Psychology. Hopefully it will grow further in the future, we are still in talks
+      with the University. Let's see.
 
       <br />I made it as a hobby project out of prev. years' student-made
-      questions, the dataset was included as part of the course and was shared by
+      questions, the dataset was included as part of the course by
       Daniël Lakens <br />
+
     </p>
 
     <p>
@@ -95,11 +97,13 @@
       >
     </p>
     <p>
-      Nothing so far! Thanks to Vuetify, the generous Firebase free tier, and
+      Close to nothing so far! Thanks to Vuetify, the Firebase free tier and
       GitHub Pages & GitHub Actions! I only pay for LLM tokens. If you
       like the project and want to attempt something similar yourself, feel free
       to contact me. In case you're also a student, check out the GitHub Student
       Pack!
+      <br />
+      Having a personal domain costs around 8 USD per year, I grabbed it through Cloudflare.
     </p>
 
     <p><strong>How can I contact you?</strong></p>

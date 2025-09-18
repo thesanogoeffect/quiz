@@ -8,18 +8,18 @@
       <v-card-title class="headline text-center">Welcome</v-card-title>
       <v-card-text class="mx-4">
         <section class="my-3">
-          <h3>Hi, welcome to the Intro to Psychology & Technology Quiz!</h3>
+          <h3>Hi, welcome to the Intro to Psychology & Technology Quiz! 👋</h3>
           <v-divider class="my-3"></v-divider>
           <p>
-            You can find out how many questions there currently are <NuxtLink to="https://ipt-quiz.streamlit.app/" target="_blank">here</NuxtLink> 👀
-          </p>
-          <p>
-            This app is a student-made project for the Intro to P&T course at TU/e Eindhoven.
+            This app is a student-made project for the <strong>Intro to P&T</strong> course at the TU/e Eindhoven.
             It uses questions made by previous years' students like me, and from the official OpenStax book.
           </p>
           <p>
             It is not an official part of the TU/e course, just a passion project.
             I am not responsible for any mistakes or inaccuracies.
+          </p>
+          <p>
+            You can find out how many questions there currently are <NuxtLink to="https://ipt-quiz.streamlit.app/" target="_blank">here</NuxtLink> 👀
           </p>
         </section>
 

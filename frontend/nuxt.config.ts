@@ -6,7 +6,7 @@ export default defineNuxtConfig({
   app: {
     baseURL: '/ipt/'
   },
-  devtools: { enabled: false },
+  devtools: { enabled: true },
   ssr: true,
   modules: ["@pinia/nuxt", "vuetify-nuxt-module"],
   vuetify: {
