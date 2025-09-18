@@ -91,7 +91,7 @@ def main():
       10: "Motivation and Emotion",
       12: "Social Psychology",
       14: "Stress, Lifestyle, and Health",
-    },
+    }
 
     df = load_data()
 
