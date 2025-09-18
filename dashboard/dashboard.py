@@ -65,7 +65,7 @@ st.markdown("""
 # Function to load and process data
 def load_data():
     try:
-        df = pd.read_csv('../data/l3.csv')
+        df = pd.read_csv('l3.csv')
         return df
     except FileNotFoundError:
         data = {
