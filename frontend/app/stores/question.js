@@ -49,6 +49,13 @@ export const useQuestionStore = defineStore("question", {
       (chapter_ids = [], sources = [], question_ids = []) => {
         let filtered = state.all_questions;
 
+        // Always exclude banned chapters globally
+        if (state.BANLIST_CHAPTERS && state.BANLIST_CHAPTERS.length > 0) {
+          filtered = filtered.filter(
+            (q) => !state.BANLIST_CHAPTERS.includes(q.chapter_id)
+          );
+        }
+
         // Apply chapter_ids filter if provided
         if (chapter_ids.length > 0) {
           filtered = filtered.filter((question) =>
@@ -120,11 +127,15 @@ export const useQuestionStore = defineStore("question", {
     getTotalCorrectAnswers: (state) => state.total_correct_answers,
 
     getFilteredByChapterAndSource: (state) => {
-      return state.all_questions.filter(
-        (question) =>
-          state.selected_chapters.includes(question.chapter_id) &&
-          state.selected_sources.includes(question.source)
-      );
+      return state.all_questions
+        .filter(
+          (q) => !state.BANLIST_CHAPTERS.includes(q.chapter_id)
+        )
+        .filter(
+          (question) =>
+            state.selected_chapters.includes(question.chapter_id) &&
+            state.selected_sources.includes(question.source)
+        );
     },
 
     isQueueEmpty: (state) => state.questionQueue.length === 0,
@@ -140,6 +151,11 @@ export const useQuestionStore = defineStore("question", {
   },
 
   actions: {
+    sanitizeChapterIds(ids = []) {
+      if (!Array.isArray(ids)) return [];
+      const banned = new Set(this.BANLIST_CHAPTERS || []);
+      return ids.filter((id) => !banned.has(id));
+    },
     resetAlreadySeenQuestions() {
       this.alreadySeenQuestions = {};
     },
@@ -173,7 +189,7 @@ export const useQuestionStore = defineStore("question", {
       // if (selectedChapters) {
       //   this.selected_chapters = JSON.parse(selectedChapters);
       // } else {
-      //   this.selected_chapters = this.DEFAULT_CHAPTERS;
+      //   this.selected_chapters = this.sanitizeChapterIds(this.DEFAULT_CHAPTERS);
       // }
       if (selectedSources) {
         this.selected_sources = JSON.parse(selectedSources);
@@ -281,6 +297,16 @@ export const useQuestionStore = defineStore("question", {
       // Load selected filters from localStorage
       this.loadSelectedFiltersFromLocalStorage();
 
+      // Ensure selected_chapters is initialized and sanitized
+      if (!this.selected_chapters || this.selected_chapters.length === 0) {
+        // Default to all available chapters excluding banned ones
+        this.selected_chapters = this.sanitizeChapterIds(
+          this.DEFAULT_CHAPTERS.length > 0 ? this.DEFAULT_CHAPTERS : this.all_chapters
+        );
+      } else {
+        this.selected_chapters = this.sanitizeChapterIds(this.selected_chapters);
+      }
+
       // Generate the initial queue
       await this.generateQueue(this.selected_chapters, this.selected_sources);
       this.incrementTotalShownQuestions();
@@ -300,6 +326,8 @@ export const useQuestionStore = defineStore("question", {
       );
       questionStatsStore.saveInteractionsCacheToLocalStorage();
       console.log("Re-setting up after filters change");
+      // Sanitize any incoming selected chapters against the banlist
+      this.selected_chapters = this.sanitizeChapterIds(this.selected_chapters);
       console.log("Selected Chapters:", this.selected_chapters);
       console.log("Selected Sources:", this.selected_sources);
       // Generate the initial queue
@@ -321,8 +349,9 @@ export const useQuestionStore = defineStore("question", {
     },
     async generateQueue(chapter_ids = [], sources = [], question_ids = []) {
       // Filter and randomize the questions to generate a queue
+      const safeChapters = this.sanitizeChapterIds(chapter_ids);
       this.questionQueue = this.randomQuestions(
-        chapter_ids,
+        safeChapters,
         sources,
         question_ids
       ).map((question) => {

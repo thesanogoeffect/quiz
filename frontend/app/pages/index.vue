@@ -67,7 +67,10 @@
               <v-select
                 multiple
                 variant="outlined"
-                :items="availableChapters"
+                :items="chapterItems"
+                item-title="title"
+                item-value="value"
+                item-disabled="disabled"
                 v-model="selectedChapters"
                 label="Selected Chapters"
               >
@@ -140,7 +143,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useTheme } from "vuetify";
 import { useDisplay } from "#imports";
 import LeftSidebar from "~/components/LeftSidebar.vue";
@@ -180,14 +183,40 @@ const generalStore = useGeneralStore();
 
 const filterDialog = ref(false);
 
-const availableChapters = computed(() => questionStore.getAllChapters.sort((a, b) => a - b));
-const availableSources = computed(() => questionStore.getAllSources);
+const availableChapters = computed<number[]>(() =>
+  [...(questionStore.getAllChapters as number[])].sort((a, b) => a - b)
+);
+const availableSources = computed<string[]>(() =>
+  [...(questionStore.getAllSources as string[])]
+);
 
-const selectedChapters = ref([]);
-const selectedSources = ref([]);
+const selectedChapters = ref<number[]>([]);
+const selectedSources = ref<string[]>([]);
+
+const banlistChapters = computed<number[]>(() => (questionStore as any).BANLIST_CHAPTERS ?? []);
+const chapterItems = computed(() => {
+  const toLabel = (id: number) => {
+    const name = questionStore.getChapterById(id);
+    return name ? `Chapter ${id}: ${name}` : `Chapter ${id}`;
+  };
+  const allowed = (availableChapters.value || []).map((id) => ({
+    title: toLabel(id),
+    value: id,
+    disabled: false,
+  }));
+  const banned = (banlistChapters.value || [])
+    .filter((id: number) => !availableChapters.value.includes(id))
+    .map((id: number) => ({
+      title: `${toLabel(id)} (disabled)`,
+      value: id,
+      disabled: true,
+    }));
+  return [...allowed, ...banned].sort((a, b) => a.value - b.value);
+});
 
 const selectAllTUEChapters = () => {
-  selectedChapters.value = [...availableChapters.value].sort((a, b) => a - b);
+  const banned = new Set(banlistChapters.value);
+  selectedChapters.value = availableChapters.value.filter((id) => !banned.has(id));
 };
 
 onMounted(() => {
@@ -195,7 +224,10 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  document.body.style.overflow = ''; // Restore scrolling when leaving the page
+  const banned = new Set(banlistChapters.value);
+  selectedChapters.value = [...availableChapters.value]
+    .filter((id) => !banned.has(id))
+    .sort((a, b) => a - b);
 });
 
 watch(
@@ -209,6 +241,19 @@ watch(
     }
   },
   { immediate: true }
+);
+
+// Safety: ensure no banned chapters can end up selected
+watch(
+  selectedChapters,
+  (newVal) => {
+    const banned = new Set(banlistChapters.value);
+    const sanitized = (newVal || []).filter((id) => !banned.has(id));
+    if (sanitized.length !== (newVal || []).length) {
+      selectedChapters.value = sanitized;
+    }
+  },
+  { deep: true }
 );
 
 watch(mdAndUp, (newVal) => {
@@ -235,8 +280,8 @@ function openDashboardInNewTab() {
 }
 
 async function applyFilters() {
-  questionStore.selected_chapters = selectedChapters.value;
-  questionStore.selected_sources = selectedSources.value;
+  (questionStore as any).selected_chapters = selectedChapters.value;
+  (questionStore as any).selected_sources = selectedSources.value;
   // save to local storage
   questionStore.saveSelectedFiltersToLocalStorage();
   await questionStore.reSetUpAfterFiltersChange();
