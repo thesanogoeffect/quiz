@@ -12,26 +12,22 @@
           <v-divider class="my-3"></v-divider>
           <p>
             This app is a student-made project for the <strong>Intro to P&T</strong> course at the TU/e Eindhoven.
-            It uses questions made by previous years' students like me, and from the official OpenStax book.
+            It uses questions made by previous years' students like me, and from the official OpenStax book. It is not an official part of the TU/e course, just a passion project.
           </p>
-          <p>
-            It is not an official part of the TU/e course, just a passion project.
-            I am not responsible for any mistakes or inaccuracies.
-          </p>
+          <br />
           <p>
             You can find out how many questions there currently are <NuxtLink to="https://ipt-quiz.streamlit.app/" target="_blank">here</NuxtLink> 👀
           </p>
         </section>
 
         <section class="my-3">
-          <h4>Disclaimer:</h4>
+          <h3>Disclaimer:</h3>
           <v-divider class="my-2"></v-divider>
+          ⚠️ <strong> I am not responsible for any mistakes or inaccuracies.</strong> ⚠️
+
           <p>
-            Some questions <b>might be incorrect</b> as I used AI when I was processing them - please stay critical.
-            <br> <b>If anything seems weird, please let me know</b>.
-          </p>
-          <p>
-            You can upvote, downvote, and flag incorrect questions, <b>your opinions and feedback are even more valuable</b> 🙏
+            Some questions <b>might be incorrect</b> as I used AI when processing them - please stay vigilant.
+            <br> <b>If anything seems out of place, please let me know</b>.
           </p>
         </section>
 

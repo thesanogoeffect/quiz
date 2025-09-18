@@ -19,15 +19,8 @@
       </a>
     </div>
     <h3>
-    <NuxtLink to="/">Back to Quiz</NuxtLink>
+    <NuxtLink to="/">Back to Quiz</NuxtLink> |
     <NuxtLink to="https://ipt-quiz.streamlit.app/">Available Questions</NuxtLink></h3>
-
-    <br />
-    <p>
-      Some questions <b>might be incorrect</b> or not good as they were made
-      using AI - you can flag them.
-      <b>If anything seems weird, please let me know</b>.
-    </p>
 
     <h1>About</h1>
     <p>
@@ -37,7 +30,7 @@
     <!-- , and
       to prof. Peter Ruijten-Dodoiu for endorsing the app for 0HV30. -->
     <p>
-      Thanks to prof. Daniël Lakens for endorsing the idea and his generous support. Also
+      Thanks to prof. Daniël Lakens for endorsing the idea and his guidance. Also
       special thanks to Tim, Aaravee and Naomi for their help, Eline, Finn and others for their support 😊!<br>
       The app uses questions made by prev. years' students like me and from the official OpenStax book.
     </p>
@@ -49,7 +42,7 @@
 
     <p>
       <strong>
-        There are known performance issues on Firefox-based browsers, please
+        The quiz runs a bit worse on Firefox-based browsers, please
         use Chromium-based ones (Brave, Edge, Chrome...) or Safari for the best experience.
       </strong>
     </p>
@@ -74,7 +67,7 @@
     </p>
     <p>
       Not right now, sorry! The effort associated with checking their quality
-      is quite high, and I don't have the time right now.
+      is quite high, and I don't have the time right now. :(
       <br />
     </p>
 
@@ -84,9 +77,9 @@
       Environmental Psychology. Hopefully it will grow further in the future, we are still in talks
       with the University. Let's see.
 
-      <br />I made it as a hobby project out of prev. years' student-made
+      <br />I made it as a hobby project out of previous years' student-made
       questions, the dataset was included as part of the course by
-      Daniël Lakens <br />
+      Daniël Lakens.<br />
 
     </p>
 
@@ -103,14 +96,13 @@
       to contact me. In case you're also a student, check out the GitHub Student
       Pack!
       <br />
-      Having a personal domain costs around 8 USD per year, I grabbed it through Cloudflare.
+      Having a personal domain costs around 8 USD per year through Cloudflare, but I just wanted to be fancy :)
     </p>
 
     <p><strong>How can I contact you?</strong></p>
     <p>
-      For any questions or feedback, hit me up at <a href="mailto:me@jakubwerner.com">me@jakubwerner.com</a> or
-      WhatsApp. I have already implemented some of your suggestions, thanks for
-      that!
+      For any questions or feedback, <a href="mailto:me@jakubwerner.com">me@jakubwerner.com</a> or
+      WhatsApp. I've already implemented many suggestions, thanks for them!
     </p>
 
     <p><strong>Did you steal the Reddit karma UI?</strong></p>
