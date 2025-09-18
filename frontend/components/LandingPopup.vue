@@ -15,10 +15,10 @@
           </p>
           <p>
             This app is a student-made project for the Intro to P&T course at TU/e Eindhoven.
-            The app uses questions made by previous years' students like me and from the official OpenStax book.
+            It uses questions made by previous years' students like me, and from the official OpenStax book.
           </p>
           <p>
-            It is not an official part of the TU/e course, just a passion project because I really liked it.
+            It is not an official part of the TU/e course, just a passion project.
             I am not responsible for any mistakes or inaccuracies.
           </p>
         </section>
