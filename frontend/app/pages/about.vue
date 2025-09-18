@@ -31,7 +31,7 @@
       to prof. Peter Ruijten-Dodoiu for endorsing the app for 0HV30. -->
     <p>
       Thanks to prof. Daniël Lakens for endorsing the idea and his guidance. Also
-      special thanks to Tim, Aaravee and Naomi for their help, Eline, Finn and others for their support 😊!<br>
+      special thanks to Tim, Aaravee and Naomi for their help, as well as to Eline, Finn and others for their support 😊!<br>
       The app uses questions made by prev. years' students like me and from the official OpenStax book.
     </p>
     <p>
