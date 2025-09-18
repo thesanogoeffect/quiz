@@ -8,11 +8,10 @@
       <v-card-title class="headline text-center">Welcome</v-card-title>
       <v-card-text class="mx-4">
         <section class="my-3">
-          <h3>Hi, welcome to the BRM 1 Quiz!</h3>
+          <h3>Hi, welcome to the IPT Quiz!</h3>
           <v-divider class="my-3"></v-divider>
           <p>
             
-              <b>I am currently working on new questions, you can send me yours (WhatsApp or <NuxtLink to="https://docs.google.com/forms/d/e/1FAIpQLSdLHct-JI-oSNGxh_3NApkQTErAD2WcsHzMq9FGlDqZogbBTw/viewform?usp=header" target="_blank">Google Form</NuxtLink>)</b>
               <br>You can find out how many there currently are <NuxtLink to="https://brm-1-questions.streamlit.app/" target="_blank">here</NuxtLink> 👀
               <br>I try to go slow and prefer quality over quantity this time. They might be a bit more challenging!
             
@@ -23,25 +22,12 @@
           <h4>Disclaimer:</h4>
           <v-divider class="my-2"></v-divider>
           <p>
-            Some questions <b>might be incorrect</b> as I used AI when I was making them - please stay critical.
+            Some questions <b>might be incorrect</b> as I used AI when I was processing them - please stay critical.
             <br> <b>If anything seems weird, please let me know</b>.
           </p>
           <p>
             You can upvote, downvote, and flag incorrect questions, <b>your opinions and feedback are even more valuable</b> 🙏
           </p>
-        </section>
-
-        <section class="my-3">
-          <h4>News (8/4/25):</h4>
-          <v-divider class="my-2"></v-divider>
-          <ul>
-            <li>We're live! More questions will arrive over the coming days before the exam. Enjoy!</li>
-          </ul>
-          <ul>
-            <li>Added most of Canvas Practice questions (by the BRM lecturers), making own questions now. Contributions welcome! 😊</li>
-          </ul>
-          
-
         </section>
 
         <v-container class="text-center my-3">

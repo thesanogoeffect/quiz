@@ -69,7 +69,7 @@
                 variant="outlined"
                 :items="availableChapters"
                 v-model="selectedChapters"
-                label="Selected Lectures"
+                label="Selected Chapters"
               >
                 <template v-slot:append>
                   <v-tooltip bottom>
@@ -77,27 +77,28 @@
                       <v-btn icon="mdi-information-outline" v-bind="props" />
                     </template>
                     <span>
-                    0: Canvas Practice Quiz<br />
-                    1: Overview + Asking research questions<br />
-                    2: Research: Questions, Designs and Methods<br />
-                    3: Ethical aspects of behavioral research<br />
-                    4: Analyzing qualitative interview data + social research<br />
-                    5: Measurement and reliability<br />
-                    6: Causal thinking & experiment basics<br />
-                    7: Choosing your experiment design<br />
-                    8: Quasi-experiment & experiment as social process<br />
-                    9: Survey method + Intro to statistical inference<br />
-                    10: Good research practices + Theory evaluation
+                    1: Introduction to Psychology<br />
+                    2: Psychological Research<br />
+                    3: Biopsychology<br />
+                    4: States of Consciousness<br />
+                    5: Sensation and Perception<br />
+                    6: Learning<br />
+                    7: Thinking and Intelligence<br />
+                    8: Memory<br />
+                    9: Lifespan Development<br />
+                    10: Motivation and Emotion<br />
+                    12: Social Psychology<br />
+                    14: Stress, Lifestyle, and Health<br />
                   </span>
 
                   </v-tooltip>
                 </template>
               </v-select>
               <v-btn class="my-2 rounded-xl" @click="selectAllChapters"
-                >Select All Lectures</v-btn
+                >Select All Chapters</v-btn
               >
               <v-btn class="my-2 rounded-xl" @click="deselectAllChapters"
-                >Deselect All Lectures</v-btn
+                >Deselect All Chapters</v-btn
               >
 
               <v-divider class=""></v-divider>
@@ -268,8 +269,8 @@ const openPopup = () => {
 };
 
 onMounted(() => {
-  // const selectedChaptersLocal = localStorage.getItem("selected_chapters_brm1");
-  const selectedSourcesLocal = localStorage.getItem("selected_sources_brm1");
+  // const selectedChaptersLocal = localStorage.getItem("selected_chapters_ipt");
+  const selectedSourcesLocal = localStorage.getItem("selected_sources_ipt");
   // if (selectedChaptersLocal) {
   //   selectedChapters.value = JSON.parse(selectedChaptersLocal);
   // }

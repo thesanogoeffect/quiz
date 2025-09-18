@@ -9,14 +9,14 @@ export const useGeneralStore = defineStore("general", {
             // Store the current timestamp in localStorage when the popup is toggled off
             if (!this.landingPopup) {
                 const today = new Date().toISOString().split('T')[0];
-                localStorage.setItem('landingPopupLastShownBehav', today);
+                localStorage.setItem('landingPopupLastShownIPT', today);
             }
         },
         toggleInstructionsPopup() {
             this.instructionsPopup = !this.instructionsPopup;
         },
         checkLandingPopup() {
-            const lastShownDate = localStorage.getItem('landingPopupLastShownBehav');
+            const lastShownDate = localStorage.getItem('landingPopupLastShownIPT');
             const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
             if (lastShownDate === today) {
                 this.landingPopup = false; // Don't show the popup if it's already been shown today

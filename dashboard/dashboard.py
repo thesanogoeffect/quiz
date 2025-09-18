@@ -5,7 +5,7 @@ import altair as alt
 
 # Set page configuration
 st.set_page_config(
-    page_title="BRM 1 Quiz Questions",
+    page_title="IPT Quiz Questions",
     page_icon="📊",
     layout="wide"
 )
@@ -65,7 +65,7 @@ st.markdown("""
 # Function to load and process data
 def load_data():
     try:
-        df = pd.read_csv('l3.csv')
+        df = pd.read_csv('../data/l3.csv')
         return df
     except FileNotFoundError:
         data = {
@@ -74,23 +74,24 @@ def load_data():
 
 # Main function
 def main():
-    st.markdown('<div class="main-header">BRM 1 Quiz Questions</div>', unsafe_allow_html=True)
-    st.markdown('[🔗 Back to Quiz](https://thesanogoeffect.github.io/behav-1-quiz/)', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Intro to P&T Questions</div>', unsafe_allow_html=True)
+    st.markdown('[🔗 Back to Quiz](https://quiz.jakubwerner.com/ipt)', unsafe_allow_html=True)
 
 
     chapter_map = {
-        0: "Canvas Practice Quiz",
-        1: "Overview + Asking research questions",
-        2: "Research: Questions, Designs and Methods",
-        3: "Ethical aspects of behavioral research",
-        4: "Analyzing qualitative interview data + social research",
-        5: "Measurement and reliability",
-        6: "Causal thinking & experiment basics",
-        7: "Choosing your experiment design",
-        8: "Quasi-experiment & experiment as social process",
-        9: "Survey method + Intro to statistical inference",
-        10: "Good research practices + Theory evaluation"
-    }
+      1: "Introduction to Psychology",
+      2: "Psychological Research",
+      3: "Biopsychology",
+      4: "States of Consciousness",
+      5: "Sensation and Perception",
+      6: "Learning",
+      7: "Thinking and Intelligence",
+      8: "Memory",
+      9: "Lifespan Development",
+      10: "Motivation and Emotion",
+      12: "Social Psychology",
+      14: "Stress, Lifestyle, and Health",
+    },
 
     df = load_data()
 
@@ -99,7 +100,7 @@ def main():
     chapters_distribution = df['chapter_id'].value_counts().sort_index()
 
     # Create a list of formatted chapter names with IDs
-    formatted_chapter_names = [f"Lecture {id}: {chapter_map.get(id, f'Lecture {id}')}" for id in chapters_distribution.index]
+    formatted_chapter_names = [f"Chapters {id}: {chapter_map.get(id, f'Chapters {id}')}" for id in chapters_distribution.index]
 
     col1, col2, col3 = st.columns(3)
 
@@ -115,7 +116,7 @@ def main():
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-number">{chapters_present-1}</div>
-            <div class="stat-label">Lectures Covered</div>
+            <div class="stat-label">Chapterss Covered</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -124,7 +125,7 @@ def main():
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-number">{avg_questions:.1f}</div>
-            <div class="stat-label">Avg Questions per Lecture</div>
+            <div class="stat-label">Avg Questions per Chapters</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -134,13 +135,13 @@ def main():
     chart_data = chapters_distribution.reset_index()
     chart_data.columns = ['chapter_id', 'Number of Questions']
     # Map chapter_id to the formatted chapter names
-    chart_data['Lecture'] = chart_data['chapter_id'].map(lambda x: f"Lecture {x}: {chapter_map.get(x, f'Lecture {x}')}")
+    chart_data['Chapters'] = chart_data['chapter_id'].map(lambda x: f"Chapters {x}: {chapter_map.get(x, f'Chapters {x}')}")
 
     chart = alt.Chart(chart_data).mark_bar().encode(
-        x=alt.X('Lecture', sort=None, axis=alt.Axis(labelAngle=45)), # Increased label angle for better readability
+        x=alt.X('Chapters', sort=None, axis=alt.Axis(labelAngle=45)), # Increased label angle for better readability
         y='Number of Questions',
-        color=alt.Color('Lecture:N', scale=alt.Scale(scheme='category10')),
-        tooltip=['Lecture', 'Number of Questions']
+        color=alt.Color('Chapters:N', scale=alt.Scale(scheme='category10')),
+        tooltip=['Chapters', 'Number of Questions']
     )
     text = chart.mark_text(
         align='center',

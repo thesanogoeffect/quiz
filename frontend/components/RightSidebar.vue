@@ -23,8 +23,8 @@
           <v-row>
             <v-col>
               <v-icon color="primary">mdi-book</v-icon>
-              Lecture:
-              {{ chapter ? chapterId + " - " + chapter : "Unknown Lecture" }}
+              Chapter:
+              {{ chapter ? chapterId + " - " + chapter : "Unknown Chapter" }}
             </v-col>
           </v-row>
 

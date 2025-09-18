@@ -4,7 +4,7 @@ import { Title } from "#build/components";
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
-  ssr: false,
+  ssr: true,
   modules: ["@pinia/nuxt", "vuetify-nuxt-module"],
 
   vuetify: {

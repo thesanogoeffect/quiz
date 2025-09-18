@@ -8,7 +8,7 @@ import pandas as pd
 cred = credentials.Certificate("firebase_credentials.json")
 firebase_admin.initialize_app(cred)
 
-COLLECTION_NAME = "brm-1-questions"
+COLLECTION_NAME = "questions"
 client = firestore.client()
 
 new_question = {

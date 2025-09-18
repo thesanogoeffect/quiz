@@ -101,39 +101,39 @@ export const useQuestionStatsStore = defineStore("questionstats", {
     },
     loadUpvoteCacheFromLocalStorage() {
       // Load the upvote cache from local storage
-      const cache = localStorage.getItem("behav_upvote_cache");
+      const cache = localStorage.getItem("ipt_upvote_cache");
       if (cache) {
         this.upvote_cache = JSON.parse(cache);
       }
     },
     loadDownvoteCacheFromLocalStorage() {
       // Load the downvote cache from local storage
-      const cache = localStorage.getItem("behav_downvote_cache");
+      const cache = localStorage.getItem("ipt_downvote_cache");
       if (cache) {
         this.downvote_cache = JSON.parse(cache);
       }
     },
     loadFlagCacheFromLocalStorage() {
       // Load the flag cache from local storage
-      const cache = localStorage.getItem("behav_quiz_flag_cache");
+      const cache = localStorage.getItem("ipt_quiz_flag_cache");
       if (cache) {
         this.flag_cache = JSON.parse(cache);
       }
     },
     saveUpvoteCacheToLocalStorage() {
       // Save the upvote cache to local storage
-      localStorage.setItem("behav_quiz_upvote_cache", JSON.stringify(this.upvote_cache));
+      localStorage.setItem("ipt_quiz_upvote_cache", JSON.stringify(this.upvote_cache));
     },
     saveDownvoteCacheToLocalStorage() {
       // Save the downvote cache to local storage
       localStorage.setItem(
-        "behav_downvote_cache",
+        "ipt_downvote_cache",
         JSON.stringify(this.downvote_cache)
       );
     },
     saveFlagCacheToLocalStorage() {
       // Save the flag cache to local storage
-      localStorage.setItem("behav_quiz_flag_cache", JSON.stringify(this.flag_cache));
+      localStorage.setItem("ipt_quiz_flag_cache", JSON.stringify(this.flag_cache));
     },
 
     saveInteractionsCacheToLocalStorage() {

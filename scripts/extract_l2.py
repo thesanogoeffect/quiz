@@ -55,7 +55,7 @@ def create_l3():
 
     df.to_csv("l3.csv", index=False)
     # now also save it as json
-    df.to_json("l3.json", orient="records")
+    df.to_json("../data/l3.json", orient="records")
 
 def filter_l2(df):
     # print the shape of the df
@@ -70,7 +70,7 @@ def filter_l2(df):
     return df
 
 def copy_l3_to_public():
-    os.system("cp l3.json frontend/public/l3.json")
+    os.system("cp ../data/l3.json frontend/public/l3.json")
 
 if __name__ == "__main__":
     create_l3()

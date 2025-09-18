@@ -1,17 +1,17 @@
-# pandas
-# gspread
-# environs
-# langchain-openai
-# langchain-google-genai
-# google-genai
-# weasyprint
-# langchain-pinecone
-# langchain-community
-# langchain
-# langchain-experimental
-# langgraph
-# python-dotenv
-# firebase-admin
+pandas
+gspread
+environs
+langchain-openai
+langchain-google-genai
+google-genai
+weasyprint
+langchain-pinecone
+langchain-community
+langchain
+langchain-experimental
+langgraph
+python-dotenv
+firebase-admin
 streamlit
 matplotlib
 altair

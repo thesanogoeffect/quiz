@@ -15,7 +15,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const questionsRef = collection(db, "brm-1-questions");
+  const questionsRef = collection(db, "questions");
   
 
   return {

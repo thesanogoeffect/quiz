@@ -27,17 +27,18 @@ export const useQuestionStore = defineStore("question", {
     currentReviewPosition: 0, //
     currentlyReviewedQuestion: null,
     BOOK_CHAPTER_NAMES:{
-      0: "Canvas Practice Quiz",
-      1: "Overview + Asking research questions",
-      2: "Research: Questions, Designs and Methods",
-      3: "Ethical aspects of behavioral research",
-      4: "Analyzing qualitative interview data + social research",
-      5: "Measurement and reliability",
-      6: "Causal thinking & experiment basics",
-      7: "Choosing your experiment design",
-      8: "Quasi-experiment & experiment as social process",
-      9: "Survey method + Intro to statistical inference",
-      10: "Good research practices + Theory evaluation",
+      1: "Introduction to Psychology",
+      2: "Psychological Research",
+      3: "Biopsychology",
+      4: "States of Consciousness",
+      5: "Sensation and Perception",
+      6: "Learning",
+      7: "Thinking and Intelligence",
+      8: "Memory",
+      9: "Lifespan Development",
+      10: "Motivation and Emotion",
+      12: "Social Psychology",
+      14: "Stress, Lifestyle, and Health",
     },
     
   }),
@@ -156,18 +157,18 @@ export const useQuestionStore = defineStore("question", {
     },
     saveSelectedFiltersToLocalStorage() {
       localStorage.setItem(
-        "selected_chapters_brm1",
+        "selected_chapters_ipt",
         JSON.stringify(this.selected_chapters)
       );
       localStorage.setItem(
-        "selected_sources_brm1",
+        "selected_sources_ipt",
         JSON.stringify(this.selected_sources)
       );
     },
     loadSelectedFiltersFromLocalStorage() {
       // disabling this logic for now
-      // const selectedChapters = localStorage.getItem("selected_chapters_brm1");
-      const selectedSources = localStorage.getItem("selected_sources_brm1");
+      // const selectedChapters = localStorage.getItem("selected_chapters_ipt");
+      const selectedSources = localStorage.getItem("selected_sources_ipt");
 
       // if (selectedChapters) {
       //   this.selected_chapters = JSON.parse(selectedChapters);
