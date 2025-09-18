@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "build:ipt": "NUXT_APP_BASE_URL=/ipt/ yarn build",
-    "start": "node .output/server/index.mjs"
+    "start": "NITRO_HOST=127.0.0.1 node .output/server/index.mjs"
   },
   "dependencies": {
     "firebase": "^10.14.0",
