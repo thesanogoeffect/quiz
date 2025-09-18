@@ -7,6 +7,12 @@ export default defineNuxtConfig({
   ssr: true,
   modules: ["@pinia/nuxt", "vuetify-nuxt-module"],
 
+  // Configure base URL for subdirectory deployment
+  app: {
+    baseURL: process.env.NUXT_APP_BASE_URL || '/',
+    cdnURL: process.env.NUXT_APP_CDN_URL || undefined,
+  },
+
   vuetify: {
     vuetifyOptions: "./vuetify.config.ts",
   },

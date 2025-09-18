@@ -8,7 +8,9 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "start": "yarn start"
+    "start": "nuxt dev",
+    "build:ipt": "NUXT_APP_BASE_URL=/ipt/ nuxt build",
+    "build:github-pages": "NUXT_APP_BASE_URL=/ipt/ nuxt build --preset github_pages"
   },
   "dependencies": {
     "firebase": "^10.14.0",
