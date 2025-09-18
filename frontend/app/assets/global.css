@@ -28,3 +28,21 @@
     background-color: #3B3B3B; /* Dim Gray */
     color: #E0E0E0; /* Light Gray Text */
 }
+
+/*
+    Global caret control
+    Hide the blinking text insertion caret across non-editable elements to prevent
+    an unexpected caret from showing on initial render. Re-enable it for real
+    text entry controls so typing still shows a caret where appropriate.
+*/
+*:not(input):not(textarea):not([contenteditable="true"]) {
+    caret-color: transparent !important;
+}
+
+/* Allow caret where users can actually type */
+input,
+textarea,
+[contenteditable="true"],
+.v-field__input input {
+    caret-color: auto !important;
+}

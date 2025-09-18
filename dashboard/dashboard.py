@@ -65,7 +65,7 @@ st.markdown("""
 # Function to load and process data
 def load_data():
     try:
-        df = pd.read_csv('l3.csv')
+        df = pd.read_csv('data/l3.csv')
         return df
     except FileNotFoundError:
         data = {
@@ -100,7 +100,7 @@ def main():
     chapters_distribution = df['chapter_id'].value_counts().sort_index()
 
     # Create a list of formatted chapter names with IDs
-    formatted_chapter_names = [f"Chapters {id}: {chapter_map.get(id, f'Chapters {id}')}" for id in chapters_distribution.index]
+    # formatted_chapter_names = [f"Chapters {id}: {chapter_map.get(id, f'Chapters {id}')}" for id in chapters_distribution.index]
 
     col1, col2, col3 = st.columns(3)
 
@@ -116,12 +116,12 @@ def main():
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-number">{chapters_present-1}</div>
-            <div class="stat-label">Chapterss Covered</div>
+            <div class="stat-label">Chapters Covered</div>
         </div>
         """, unsafe_allow_html=True)
 
     with col3:
-        avg_questions = total_questions / 10
+        avg_questions = total_questions / chapters_present if chapters_present > 0 else 0
         st.markdown(f"""
         <div class="stat-card">
             <div class="stat-number">{avg_questions:.1f}</div>
