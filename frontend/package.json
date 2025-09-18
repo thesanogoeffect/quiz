@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "start": "node .output/server/index.mjs",
-    "build:ipt": "NUXT_APP_BASE_URL=/ipt/ nuxt build"
+    "build:ipt": "NUXT_APP_BASE_URL=/ipt/ yarn build"
   },
   "dependencies": {
     "firebase": "^10.14.0",
