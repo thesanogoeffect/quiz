@@ -128,10 +128,21 @@ create or delete.
 firebase deploy --only firestore:rules
 ```
 
-**These rules have not been tested against the live project.** Before deploying, paste them into
-the Firebase console → Firestore → Rules → Rules Playground and confirm the cases listed at the top
-of the file. If they turn out too strict the quiz keeps working — the client logs a warning and
-carries on — but the community counters stop moving.
+**Deploy these — the database is currently wide open.** Verified against the live project on
+2026-09-01 with non-mutating probes (each write carried an impossible `updateTime` precondition, so
+the rules were evaluated but nothing could commit): an unauthenticated client can today set any
+field to any value, delete a question document, and page through the whole collection. The rules
+close all three.
+
+Nothing in the app breaks: the browser only ever calls `getDoc` and `updateDoc` with
+`increment(±1)` — there is no `getDocs`, `query`, `setDoc`, `addDoc`, `deleteDoc` or `onSnapshot`
+anywhere in `frontend/app/`. The Python pipeline in `scripts/` does list the collection, but it
+uses `firebase_admin`, which bypasses security rules entirely.
+
+The rules themselves have not been executed against the live project, so before deploying, paste
+them into the Firebase console → Firestore → Rules → Rules Playground and confirm the cases listed
+at the top of the file. If they turn out too strict the quiz keeps working — the client logs a
+warning and carries on — but the community counters stop moving.
 
 Worth doing at some point: turn on [App Check](https://firebase.google.com/docs/app-check) with
 reCAPTCHA v3 (it is free on every plan, Spark included). The rules stop a client writing
