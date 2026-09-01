@@ -35,7 +35,13 @@ export async function getQuestionById(id) {
 export function incrementQuestionFields(id, updates, negative = false) {
   if (!updates || updates.length === 0) return Promise.resolve();
 
-  const { $questionsRef } = useNuxtApp(); // must be read inside the Nuxt context
+  // must be read inside the Nuxt context
+  const { $questionsRef, $firestoreReadOnly } = useNuxtApp();
+
+  // Local development shares the production database. Reads are harmless;
+  // writes would quietly inflate the real community counters.
+  if ($firestoreReadOnly) return Promise.resolve();
+
   const questionDocRef = doc($questionsRef, String(id));
 
   const updateData = {};

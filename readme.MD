@@ -134,5 +134,49 @@ of the file. If they turn out too strict the quiz keeps working — the client l
 carries on — but the community counters stop moving.
 
 Worth doing at some point: turn on [App Check](https://firebase.google.com/docs/app-check) with
-reCAPTCHA v3. The rules stop a client writing *nonsense*, but nothing currently stops one writing
-*a lot*, and the free tier allows 20k writes a day.
+reCAPTCHA v3 (it is free on every plan, Spark included). The rules stop a client writing
+*nonsense*, but nothing currently stops one writing *a lot*.
+
+### Is Firestore the right choice, and can it cost anything?
+
+Short answer: yes, and no. Measured on 2026-09-01:
+
+- The app does **one document read and one document write per question served**. Nothing else
+  touches the database.
+- The free (Spark) quota is 50,000 reads and 20,000 writes per day. **Writes bind first**, so the
+  ceiling is about 20,000 questions answered per day — roughly 330 students doing 60 questions
+  each, or 200 doing 100.
+- Lifetime usage to date is **131,380 questions asked / 124,675 answered**. Even if every one of
+  those had happened in a single 20-day exam period, that is a third of the daily free quota.
+- **On Spark a bill is not possible.** No payment method is attached, and exceeding the quota
+  returns `RESOURCE_EXHAUSTED` until it resets around midnight Pacific — Firebase suspends the
+  product rather than charging.
+  ([plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans),
+  [error codes](https://cloud.google.com/firestore/docs/understand-error-codes))
+- Even on Blaze the numbers are trivial: the app's entire lifetime, if the free tier did not exist,
+  costs well under a euro at list price. Reaching $1 in a *single day* needs several hundred
+  thousand questions answered that day.
+
+The one thing that genuinely costs something is bundle size: the Firebase SDK is **332 KB raw /
+83 KB gzipped**, about a third of the app's JavaScript, for seven integer counters. That is the
+only real argument for changing anything, and it is not worth a rewrite.
+
+Alternatives were checked and rejected: Workers KV allows only 1,000 writes/day; Supabase pauses
+free projects after a week idle (fatal for a course app used in bursts); Realtime Database caps
+Spark at 100 simultaneous connections. Cloudflare D1 does have ~5x the write headroom and also
+cannot bill you, but it needs a Worker in front of it, i.e. a server to maintain. Only move if
+writes actually start failing across multiple days.
+
+Back the counters up before touching any of this — they are the only thing here that cannot be
+regenerated:
+
+```bash
+python3 scripts/backup_firestore_stats.py     # -> data/firestore-backup-<date>.json (gitignored)
+```
+
+### Local development does not write to the live database
+
+`frontend/app/plugins/firebase.client.js` marks the connection read-only when the page is served
+from `localhost`, `127.0.0.1` or a `.local` host: community stats still load, but no counter
+updates are sent. Running the quiz locally used to add phantom answers to the real totals. Append
+`?firestore=live` to override.
