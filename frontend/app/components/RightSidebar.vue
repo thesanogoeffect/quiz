@@ -22,6 +22,29 @@
         <v-icon color="secondary" size="small">mdi-book-open-page-variant</v-icon>
         <span>Source: {{ sourceLabel }}</span>
       </div>
+
+      <div class="info-row">
+        <v-icon color="primary" size="small">mdi-account</v-icon>
+        <span>
+          Author: <span class="author-token">{{ authorLabel }}</span>
+          <v-tooltip
+            v-if="hasAuthor"
+            location="bottom"
+            text="An anonymous tag for whoever wrote this question. The same tag always means the same author."
+          >
+            <template v-slot:activator="{ props }">
+              <v-icon
+                v-bind="props"
+                size="x-small"
+                class="ml-1"
+                tabindex="0"
+                aria-label="What is this tag?"
+                >mdi-help-circle-outline</v-icon
+              >
+            </template>
+          </v-tooltip>
+        </span>
+      </div>
     </v-card>
 
     <v-expansion-panels v-if="questionStore.getReviewMode" class="mt-4">
@@ -71,6 +94,11 @@ const llmExplanation = computed(() => {
 });
 
 const sourceLabel = computed(() => currentQuestion.value?.source || "N/A");
+
+// The stored value is a salted HMAC token (see scripts/anonymize_authors.py),
+// never a student number. Book questions have no author at all.
+const hasAuthor = computed(() => !!currentQuestion.value?.author);
+const authorLabel = computed(() => currentQuestion.value?.author || "—");
 const chapterId = computed(() => currentQuestion.value?.chapter_id);
 const chapterLabel = computed(() => {
   const id = chapterId.value;
@@ -89,6 +117,11 @@ const chapterLabel = computed(() => {
 h2 {
   font-weight: bold;
   font-size: 1.35rem;
+}
+
+.author-token {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
 }
 
 .info-row {
