@@ -10,14 +10,16 @@ rules_version = '2';
 // The intent: anyone may read one question's counters, and may nudge any of the
 // seven known counters by exactly +/-1. Nothing else.
 //
-// NOT YET VERIFIED AGAINST THE LIVE PROJECT. Before deploying, paste this into
-// the Firebase console -> Firestore -> Rules -> Rules Playground and check:
-//   allow   update questions/1  { times_answered: <current+1> }
-//   deny    update questions/1  { times_answered: 999999 }
-//   deny    update questions/1  { question_title: "x" }
-//   allow   get    questions/1
-// If the rules are too strict the quiz still works - the client logs a warning
-// and carries on - but the community counters silently stop moving.
+// Deployed and verified against the live project on 2026-09-02. To re-check the
+// rules that are actually live - not the ones in the console editor - run:
+//
+//     python3 scripts/verify_firestore_rules.py
+//
+// It probes from outside with nothing but the public web key and modifies
+// nothing, and should report 6 of 6. Run it after every change to this file.
+//
+// If the rules are ever too strict the quiz still works - the client logs a
+// warning and carries on - but the community counters silently stop moving.
 
 service cloud.firestore {
   match /databases/{database}/documents {

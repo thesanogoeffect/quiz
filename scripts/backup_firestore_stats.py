@@ -14,16 +14,16 @@ security rules.
     python3 scripts/backup_firestore_stats.py --out somewhere.json
     python3 scripts/backup_firestore_stats.py --summary           # totals only, no file
 
-Note: listing the collection is what the *current* rules allow. The rules in
-firestore.rules set `allow list: if false`, so after deploying them this script
-needs an admin credential (see scripts/firestore.py) or must fetch documents by
-id one at a time.
+The deployed rules set `allow list: if false`, so this cannot page through the
+collection. It fetches documents by name with `:batchGet` instead, which the
+rules evaluate as `get` - allowed. Ids are contiguous from 1, so it walks the
+range and stops once it has seen a long enough run of absent ids.
 """
 
 import argparse
 import datetime
 import json
-import urllib.parse
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -31,10 +31,12 @@ PROJECT = "intro-psych-quiz-592fb"
 # Public by design - a Firebase web API key identifies the project, it is not a
 # secret. Access is governed by the security rules.
 API_KEY = "AIzaSyDdeQI0zLemr3lZRdJZbYvgh7Lh8i3xQSM"
-BASE = (
+ROOT = (
     f"https://firestore.googleapis.com/v1/projects/{PROJECT}"
-    "/databases/(default)/documents/questions"
+    "/databases/(default)/documents"
 )
+# Fully-qualified document names, as :batchGet wants them.
+DOC_ROOT = f"projects/{PROJECT}/databases/(default)/documents"
 COUNTERS = [
     "times_asked",
     "times_answered",
@@ -59,20 +61,49 @@ def value_of(field):
     return None
 
 
+# How many consecutive absent ids to tolerate before deciding we are past the
+# end of the collection. Comfortably larger than any gap the pipeline leaves.
+STRIDE = 200
+GIVE_UP_AFTER = 400
+
+
+def batch_get(ids):
+    """Fetch questions by id. Governed by `allow get`, not `allow list`."""
+    payload = {"documents": [f"{DOC_ROOT}/questions/{i}" for i in ids]}
+    request = urllib.request.Request(
+        f"{ROOT}:batchGet?key={API_KEY}",
+        data=json.dumps(payload).encode(),
+        headers={"Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as response:
+            entries = json.load(response)
+    except urllib.error.HTTPError as error:
+        if error.code == 403:
+            raise SystemExit(
+                "Firestore refused the read (HTTP 403).\n"
+                "The rules allow `get` on questions/{id}, so this should work with\n"
+                "no credentials. Check that firestore.rules is still deployed:\n"
+                "    python3 scripts/verify_firestore_rules.py"
+            ) from error
+        raise SystemExit(
+            f"Firestore returned HTTP {error.code}: {error.read().decode()[:300]}"
+        ) from error
+    return [entry["found"] for entry in entries if "found" in entry]
+
+
 def fetch_all():
     documents = []
-    token = None
-    while True:
-        params = {"pageSize": "300", "key": API_KEY}
-        if token:
-            params["pageToken"] = token
-        url = f"{BASE}?{urllib.parse.urlencode(params)}"
-        with urllib.request.urlopen(url, timeout=60) as response:
-            page = json.load(response)
-        documents += page.get("documents", [])
-        token = page.get("nextPageToken")
-        if not token:
-            break
+    start = 1
+    misses = 0
+    while misses < GIVE_UP_AFTER:
+        found = batch_get(range(start, start + STRIDE))
+        documents += found
+        # A whole stride with nothing in it means we are probably past the end;
+        # keep going a little in case the pipeline left a gap.
+        misses = 0 if found else misses + STRIDE
+        start += STRIDE
     return documents
 
 

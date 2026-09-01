@@ -158,11 +158,12 @@ npx firebase-tools login          # one-off, opens a browser
 npx firebase-tools deploy --only firestore:rules
 ```
 
-`.firebaserc` pins the project, so neither command needs `--project`. Before deploying, back the
-counters up (`python3 scripts/backup_firestore_stats.py`) — note that the new rules set
-`allow list: if false`, so after this the backup script needs an admin credential rather than the
-public key, and `scripts/firestore.py` (which uses `firebase_admin`) becomes the way to read the
-collection in bulk.
+`.firebaserc` pins the project, so neither command needs `--project`. Back the counters up first
+(`python3 scripts/backup_firestore_stats.py`) — that is the one thing here which cannot be
+regenerated. The rules set `allow list: if false`, so nothing can page through the collection any
+more; the backup script fetches documents by name with `:batchGet`, which the rules evaluate as
+`get`, and so still needs no credentials. `scripts/firestore.py` (`firebase_admin`) bypasses the
+rules entirely and is the way in for anything that must write in bulk.
 
 Check the *deployed* rules from outside, before and after — this beats the Rules Playground,
 which only tests what you have pasted into the console rather than what is live:
@@ -174,9 +175,12 @@ python3 scripts/verify_firestore_rules.py
 It probes with nothing but the public web key, from the same position a student's browser is in,
 and changes nothing: every write probe carries an impossible `currentDocument.updateTime`, so even
 a write the rules *allow* cannot commit (403 means the rules refused it, 400 FAILED_PRECONDITION
-means they permitted it). Baseline on 2026-09-01, before deploying, was 4 of 6 failing — listing
-the collection, setting a counter to 999999, writing an arbitrary field and deleting a question
-were all permitted.
+means they permitted it).
+
+Baseline on 2026-09-01, before deploying, was **4 of 6 failing** — listing the collection, setting a
+counter to 999999, writing an arbitrary field and deleting a question were all permitted. After
+deploying on 2026-09-02 it reports **6 of 6**, and a fresh backup matched the pre-deploy one on all
+1,048 documents field for field, so the lockdown moved no data.
 
 You can also sanity-check in the console — Firestore → Rules → Rules Playground:
 
