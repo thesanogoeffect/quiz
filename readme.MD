@@ -147,8 +147,28 @@ known counters by exactly ±1. Nothing else — no arbitrary field writes, no co
 create or delete.
 
 ```bash
-firebase deploy --only firestore:rules
+npx firebase-tools login          # one-off, opens a browser
+npx firebase-tools deploy --only firestore:rules
 ```
+
+`.firebaserc` pins the project, so neither command needs `--project`. Before deploying, back the
+counters up (`python3 scripts/backup_firestore_stats.py`) — note that the new rules set
+`allow list: if false`, so after this the backup script needs an admin credential rather than the
+public key, and `scripts/firestore.py` (which uses `firebase_admin`) becomes the way to read the
+collection in bulk.
+
+Sanity-check in the console first — Firestore → Rules → Rules Playground:
+
+| Simulation | Location | Expect |
+| --- | --- | --- |
+| `get` | `/questions/1` | **Allow** |
+| `list` | `/questions` | **Deny** |
+| `update` with `{times_answered: <current + 1>}` | `/questions/1` | **Allow** |
+| `update` with `{times_answered: 999999}` | `/questions/1` | **Deny** |
+| `update` with `{question_title: "x"}` | `/questions/1` | **Deny** |
+| `delete` | `/questions/1` | **Deny** |
+
+If any row disagrees, do not deploy — the counters would silently stop moving.
 
 **Deploy these — the database is currently wide open.** Verified against the live project on
 2026-09-01 with non-mutating probes (each write carried an impossible `updateTime` precondition, so
