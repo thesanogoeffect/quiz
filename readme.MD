@@ -187,8 +187,18 @@ Short answer: yes, and no. Measured on 2026-09-01:
   ([plans](https://firebase.google.com/docs/projects/billing/firebase-pricing-plans),
   [error codes](https://cloud.google.com/firestore/docs/understand-error-codes))
 - Even on Blaze the numbers are trivial: the app's entire lifetime, if the free tier did not exist,
-  costs well under a euro at list price. Reaching $1 in a *single day* needs several hundred
-  thousand questions answered that day.
+  costs **$0.16–$0.32** at list price. Reaching $1 in a *single day* needs roughly 444,000 questions
+  answered that day — about 4,400 students doing 100 each.
+- That range is the region, not uncertainty: a single-region US location (`us-central1`) is
+  $0.03/100k reads and $0.09/100k writes; the US multi-region (`nam5`) is exactly double, $0.06 and
+  $0.18 ([pricing](https://cloud.google.com/firestore/pricing)). Which one this project uses is
+  shown at the top of Firebase console → Firestore Database; it needs an OAuth credential to read
+  via the API, so it is a console lookup.
+- Deploying the security rules adds **no** read cost. Rules only bill extra reads when they call
+  `get()` / `exists()` to look at another document; `firestore.rules` uses only `resource.data` and
+  `request.resource.data`.
+- One caveat if the project ever grows: the free quota covers the `(default)` database only. A
+  second, named database requires billing and gets **no** free quota at all.
 
 The one thing that genuinely costs something is bundle size: the Firebase SDK is **332 KB raw /
 83 KB gzipped**, about a third of the app's JavaScript, for seven integer counters. That is the
