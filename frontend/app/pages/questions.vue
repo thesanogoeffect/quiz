@@ -12,7 +12,13 @@
 
     <v-main>
       <v-container class="page">
-        <div v-if="!loaded" class="text-center py-12">
+        <div v-if="questionStore.getLoadError" class="text-center py-12">
+          <v-icon size="48" color="warning">mdi-cloud-alert</v-icon>
+          <p class="text-body-1 my-4">{{ questionStore.getLoadError }}</p>
+          <v-btn color="primary" @click="reload">Try again</v-btn>
+        </div>
+
+        <div v-else-if="!loaded" class="text-center py-12">
           <v-progress-circular color="primary" indeterminate></v-progress-circular>
         </div>
 
@@ -111,15 +117,15 @@ const questionStore = useQuestionStore();
 // finishes - setUp() is idempotent, so just make sure it has run.
 onMounted(() => questionStore.setUp());
 
+function reload() {
+  window.location.reload();
+}
+
 const loaded = computed(() => questionStore.getTotalQuestions > 0);
 
 // Everything below is derived from l3.json, which the app already loads, so
 // this page needs no backend of its own.
-const visibleQuestions = computed(() =>
-  questionStore.all_questions.filter(
-    (q) => !questionStore.BANLIST_CHAPTERS.includes(q.chapter_id)
-  )
-);
+const visibleQuestions = computed(() => questionStore.getAvailableQuestions);
 
 const total = computed(() => visibleQuestions.value.length);
 

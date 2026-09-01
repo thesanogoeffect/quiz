@@ -58,7 +58,7 @@ import { useQuestionStore } from "#imports";
 const generalStore = useGeneralStore();
 const questionStore = useQuestionStore();
 
-const questionCount = computed(() => questionStore.getTotalQuestions || "…");
+const questionCount = computed(() => questionStore.getAvailableQuestionCount || "…");
 const chapterCount = computed(() => questionStore.getAllChapters.length || "…");
 
 const closeDialog = () => {

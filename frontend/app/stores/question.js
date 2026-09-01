@@ -15,6 +15,10 @@ const POSITIONAL_OPTION =
 // draws. Only strip when every option carries one, so "B. F. Skinner" survives.
 const LETTER_PREFIX = /^\s*[a-dA-D]\s*[.)]\s+/;
 
+// Module-scope, not store state: it holds a Promise, which has no business
+// being reactive.
+let inFlightSetup = null;
+
 function normaliseOptions(rawOptions) {
   const trimmed = rawOptions.map((o) => String(o ?? "").trim());
   if (trimmed.every((o) => LETTER_PREFIX.test(o))) {
@@ -169,6 +173,16 @@ export const useQuestionStore = defineStore("question", {
     isQueueEmpty: (state) => state.questionQueue.length === 0,
 
     getTotalQuestions: (state) => state.all_questions.length,
+
+    // What a student can actually be shown - the banned chapters never appear,
+    // so quoting the raw total anywhere in the UI would be misleading.
+    getAvailableQuestions: (state) =>
+      state.all_questions.filter(
+        (q) => !state.BANLIST_CHAPTERS.includes(q.chapter_id)
+      ),
+    getAvailableQuestionCount() {
+      return this.getAvailableQuestions.length;
+    },
 
     getAnsweredCorrectlyPercentage: (state) => {
       if (state.total_answered_questions === 0) return 0;
@@ -354,8 +368,18 @@ export const useQuestionStore = defineStore("question", {
     // route - it deliberately does NOT pick a question, because doing that on
     // /about or /questions would record a "times_asked" for a question the
     // visitor never saw.
-    async setUp() {
-      if (this.all_questions.length > 0) return; // already initialised
+    //
+    // Both app.vue and the page call this, and a child's onMounted runs before
+    // the root's, so the in-flight promise is shared - otherwise the 1.2 MB
+    // l3.json is fetched and parsed twice on every cold load.
+    setUp() {
+      if (this.all_questions.length > 0) return Promise.resolve();
+      inFlightSetup ??= this._setUp().finally(() => {
+        inFlightSetup = null;
+      });
+      return inFlightSetup;
+    },
+    async _setUp() {
       this.loadError = null;
       try {
         await this.loadQuestionsFromJSON();

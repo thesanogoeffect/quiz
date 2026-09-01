@@ -244,14 +244,16 @@ const chapterItems = computed(() =>
   })
 );
 
-// Live count for the dialog, mirroring the store's own filtering rules.
-const matchingQuestionCount = computed(
-  () =>
-    (questionStore as any).filteredQuestions(
-      selectedChapters.value,
-      selectedSources.value
-    ).length
-);
+// Live count for the dialog. filteredQuestions treats an empty array as "no
+// filter", so an emptied selection has to short-circuit to zero rather than
+// report the whole pool.
+const matchingQuestionCount = computed(() => {
+  if (!selectedChapters.value.length || !selectedSources.value.length) return 0;
+  return (questionStore as any).filteredQuestions(
+    selectedChapters.value,
+    selectedSources.value
+  ).length;
+});
 
 const canApplyFilters = computed(
   () =>
@@ -298,13 +300,24 @@ function toggleRightDrawer() {
   rightDrawer.value = !rightDrawer.value;
 }
 
-function cancelFilters() {
+function syncFiltersFromStore() {
   selectedChapters.value = [
     ...(questionStore.getSelectedChapters as number[]),
   ].sort((a, b) => a - b);
   selectedSources.value = [...(questionStore.getSelectedSources as string[])];
+}
+
+function cancelFilters() {
+  syncFiltersFromStore();
   filterDialog.value = false;
 }
+
+// Escape and a scrim click close the dialog without going through Cancel, so
+// re-sync on open rather than on close - otherwise the next open shows a
+// selection that was never applied.
+watch(filterDialog, (open) => {
+  if (open) syncFiltersFromStore();
+});
 
 async function applyFilters() {
   (questionStore as any).selected_chapters = selectedChapters.value;
