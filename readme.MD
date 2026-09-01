@@ -177,10 +177,15 @@ and changes nothing: every write probe carries an impossible `currentDocument.up
 a write the rules *allow* cannot commit (403 means the rules refused it, 400 FAILED_PRECONDITION
 means they permitted it).
 
+It checks both directions: that the rules are tight (no listing, no arbitrary writes, no deletes)
+*and* that they are not too tight — the app bumps three counters in a single write when you answer
+a question, and un-voting sends −1, so those exact shapes are probed too. Rules that look correct
+in the Playground can still freeze the counters.
+
 Baseline on 2026-09-01, before deploying, was **4 of 6 failing** — listing the collection, setting a
 counter to 999999, writing an arbitrary field and deleting a question were all permitted. After
-deploying on 2026-09-02 it reports **6 of 6**, and a fresh backup matched the pre-deploy one on all
-1,048 documents field for field, so the lockdown moved no data.
+deploying on 2026-09-02 it reports **13 of 13**, and a fresh backup matched the pre-deploy one on
+all 1,048 documents field for field, so the lockdown moved no data.
 
 You can also sanity-check in the console — Firestore → Rules → Rules Playground:
 

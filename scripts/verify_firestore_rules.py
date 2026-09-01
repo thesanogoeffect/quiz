@@ -14,6 +14,10 @@ verdict:
     403 PERMISSION_DENIED   -> the rules rejected it
     400 FAILED_PRECONDITION -> the rules allowed it, the precondition stopped it
 
+It checks both that the rules are tight (no listing, no arbitrary writes, no
+deletes) and that they are not too tight - the multi-counter writes the quiz
+makes on every answer must still be permitted, or the counters silently stop.
+
 Run it before and after `firebase deploy --only firestore:rules`:
 
     python3 scripts/verify_firestore_rules.py
@@ -126,6 +130,39 @@ def main() -> int:
         [{"delete": name, "currentDocument": {"updateTime": IMPOSSIBLE_TIME}}]
     )
     checks.append(("delete a question", verdict, "denied"))
+
+    # The six checks above are generic. These are the writes the app actually
+    # makes: it bumps several counters in ONE updateDoc, and un-voting sends -1.
+    # Rules that pass the generic checks can still reject these and quietly
+    # freeze the counters, so test the real shapes too.
+    counters = {
+        key: int(value.get("integerValue", 0))
+        for key, value in doc.get("fields", {}).items()
+        if key.startswith("times") and "integerValue" in value
+    } if read_ok else {}
+
+    def combo(deltas):
+        fields = {
+            field: {"integerValue": str(counters.get(field, 0) + delta)}
+            for field, delta in deltas.items()
+        }
+        verdict, _ = commit_probe(
+            guarded({"name": name, "fields": fields}, list(deltas))
+        )
+        return verdict
+
+    if counters:
+        for label, deltas, want in [
+            ("answer correctly", {"times_asked": 1, "times_answered": 1,
+                                  "times_answered_correct": 1}, "allowed"),
+            ("answer wrongly", {"times_asked": 1, "times_answered": 1}, "allowed"),
+            ("skip a question", {"times_asked": 1, "times_skipped": 1}, "allowed"),
+            ("undo an upvote", {"times_upvoted": -1}, "allowed"),
+            ("all seven at once", {key: 1 for key in counters}, "allowed"),
+            ("jump a counter by two", {"times_asked": 2}, "denied"),
+            ("one valid, one jump", {"times_asked": 1, "times_answered": 7}, "denied"),
+        ]:
+            checks.append((label, combo(deltas), want))
 
     failures = 0
     for label, got, want in checks:
