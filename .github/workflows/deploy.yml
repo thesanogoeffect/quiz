@@ -42,8 +42,13 @@ jobs:
 
       # The app is served from https://quiz.jakubwerner.com/ipt/, so the Nuxt
       # output (which references /ipt/_nuxt/... internally) has to live in an
-      # /ipt/ directory. deploy/root holds the CNAME plus redirect stubs that
-      # bounce / and /itp/ to /ipt/.
+      # /ipt/ directory. deploy/root holds robots.txt, the sitemap, and the
+      # redirect stubs that bounce / and /itp/ to /ipt/.
+      #
+      # The custom domain is NOT set here. GitHub ignores a CNAME file when a
+      # site is published from a custom Actions workflow ("any existing CNAME
+      # file is ignored and is not required"), so it lives in
+      # Settings -> Pages -> Custom domain instead. See the README.
       - name: Assemble site
         run: |
           mkdir -p dist/ipt
@@ -59,7 +64,6 @@ jobs:
           test -f dist/ipt/index.html        || { echo "::error::missing dist/ipt/index.html"; exit 1; }
           test -f dist/ipt/l3.json           || { echo "::error::missing dist/ipt/l3.json"; exit 1; }
           test -f dist/ipt/about/index.html  || { echo "::error::missing dist/ipt/about/index.html"; exit 1; }
-          test -f dist/CNAME                 || { echo "::error::missing dist/CNAME"; exit 1; }
           test -f dist/.nojekyll             || { echo "::error::missing dist/.nojekyll"; exit 1; }
           grep -q '/ipt/_nuxt/' dist/ipt/index.html \
             || { echo "::error::index.html does not reference /ipt/_nuxt/ - is app.baseURL still '/ipt/'?"; exit 1; }

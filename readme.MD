@@ -19,7 +19,7 @@ project — I am not responsible for any mistakes or inaccuracies.
 | `scripts/` | The data pipeline: Google Sheets → SQLite (`data/l2.db`) → LLM enrichment → `l3.json` |
 | `dashboard/` | Streamlit dashboards for browsing/administering questions |
 | `data/` | `l2.db` (working database) plus the generated `l3.csv` / `l3.json` |
-| `deploy/root/` | Files copied to the site root by CI (CNAME, `/` and `/itp/` redirects) |
+| `deploy/root/` | Files copied to the site root by CI (redirects, robots.txt, sitemap) |
 | `.github/workflows/deploy.yml` | Builds and publishes to GitHub Pages |
 
 ## Running the app locally
@@ -52,17 +52,39 @@ npx serve .output/public     # note: this serves at / , not /ipt/
 
 `deploy/root/` provides:
 
-- `CNAME` — the custom domain `quiz.jakubwerner.com`
-- `index.html` / `404.html` — redirect the site root and unknown paths to `/ipt/`
+- `index.html` / `404.html` — redirect the site root and unknown paths to `/ipt/`. The 404 maps
+  known routes across (`/itp/questions` → `/ipt/questions/`) and sends anything else to `/ipt/`,
+  which is a real file, so it cannot loop.
 - `itp/index.html` — `/itp/` is a common typo for `/ipt/`; redirect instead of 404
+- `robots.txt` and `sitemap.xml` — these only work at the origin root, not under `/ipt/`
 
-### One-time setup on a fresh repo
+There is deliberately **no `CNAME` file**: GitHub ignores one when the site is published from a
+custom Actions workflow ("any existing `CNAME` file is ignored and is not required" —
+[docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)).
+The domain is set in repository settings instead.
 
-1. **Settings → Pages → Source: GitHub Actions**
-2. **Settings → Pages → Custom domain:** `quiz.jakubwerner.com`, then tick *Enforce HTTPS*
-3. **DNS:** point `quiz.jakubwerner.com` at GitHub Pages —
-   `CNAME quiz.jakubwerner.com → thesanogoeffect.github.io`
-   (in Cloudflare, set the record to **DNS only**, not proxied, so GitHub can issue the certificate)
+### First deploy — order matters
+
+As of 2026-09-01 this has never run: `has_pages` is `false`, there are zero workflow runs, and
+`quiz.jakubwerner.com` has no public DNS record. Do these in order. **Adding DNS first would point
+students at GitHub's "there isn't a site here" 404, which browsers cache** — worse than the current
+NXDOMAIN.
+
+1. **Push to `main`.** The workflow only triggers on `push: branches: [main]`, and
+   `actions/configure-pages` enables Pages for you on the first successful run.
+   Watch it with `gh run watch`.
+2. **Verify on the default domain first:** `https://thesanogoeffect.github.io/quiz/ipt/`.
+   If that works, the app works, and anything left is DNS.
+3. **Settings → Pages → Custom domain:** `quiz.jakubwerner.com`. This — not a file in the repo —
+   is what sets the domain.
+4. **Cloudflare:** one `CNAME` record, `quiz` → `thesanogoeffect.github.io`, proxy **off**
+   (grey cloud). An orange-clouded record breaks GitHub's domain verification and certificate
+   issuance.
+5. **Wait** — the certificate can take up to 24 hours. Then tick *Enforce HTTPS*, and check from
+   outside your tailnet: `dig @1.1.1.1 quiz.jakubwerner.com`, or a phone on mobile data.
+
+Note that `jakubwerner.com` is routed to a Tailscale address on your own machines, so
+`quiz.jakubwerner.com` resolving locally proves nothing about whether students can reach it.
 
 ### Adding another subject later
 
