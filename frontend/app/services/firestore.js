@@ -21,12 +21,19 @@ export async function getQuestionById(id) {
   return questionSnapshot.data();
 }
 
-// Function to increment the fields of a question.
-// Resolves once the write has actually been issued, so callers can await a
-// flush before navigating away. Errors are logged rather than thrown: losing a
-// counter update must never interrupt the quiz.
-export async function incrementQuestionFields(id, updates, negative = false) {
-  if (!updates || updates.length === 0) return;
+// Counter updates are fire-and-forget.
+//
+// updateDoc() only settles once the server acknowledges the write. When
+// Firestore is unreachable - offline, blocked by a network, or the daily free
+// quota exhausted - the SDK queues the write and the promise never settles at
+// all. Awaiting it there froze the whole quiz after one question: the store's
+// processingAnswer flag stayed latched and both navigation arrows went dead.
+//
+// So: issue the write, let the SDK retry it in the background, and return
+// immediately. Nothing downstream depends on the acknowledgement - a lost
+// counter is not worth stalling a student's revision session over.
+export function incrementQuestionFields(id, updates, negative = false) {
+  if (!updates || updates.length === 0) return Promise.resolve();
 
   const { $questionsRef } = useNuxtApp(); // must be read inside the Nuxt context
   const questionDocRef = doc($questionsRef, String(id));
@@ -37,8 +44,12 @@ export async function incrementQuestionFields(id, updates, negative = false) {
   });
 
   try {
-    await updateDoc(questionDocRef, updateData);
+    updateDoc(questionDocRef, updateData).catch((error) => {
+      console.warn(`Could not update stats for question ${id}:`, error?.message);
+    });
   } catch (error) {
-    console.warn(`Could not update stats for question ${id}:`, error?.message);
+    // updateDoc can throw synchronously on a malformed reference.
+    console.warn(`Could not queue stats update for question ${id}:`, error?.message);
   }
+  return Promise.resolve();
 }

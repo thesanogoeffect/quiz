@@ -17,6 +17,25 @@ const STORAGE_KEYS = {
 // "ipt_upvote_cache"; migrate whichever copy an existing user has.
 const LEGACY_UPVOTE_KEY = "ipt_upvote_cache";
 
+// Community stats are decoration. If Firestore has not answered within this
+// many milliseconds, serve the question anyway - a stalled read must never sit
+// between a student and the next question.
+const STATS_TIMEOUT_MS = 3000;
+
+function withTimeout(promise, ms) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      const error = new Error("timed out");
+      error.code = "timeout";
+      reject(error);
+    }, ms);
+    promise.then(
+      (value) => { clearTimeout(timer); resolve(value); },
+      (error) => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
 const EMPTY_STATS = {
   times_asked: 0,
   times_answered_correct: 0,
@@ -137,7 +156,7 @@ export const useQuestionStatsStore = defineStore("questionstats", {
       let stats = null;
       let missing = false;
       try {
-        stats = await getQuestionById(id);
+        stats = await withTimeout(getQuestionById(id), STATS_TIMEOUT_MS);
       } catch (error) {
         // A missing document or an offline browser must not stop the quiz -
         // fall back to zeroes and carry on.
