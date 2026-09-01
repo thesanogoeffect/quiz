@@ -62,16 +62,24 @@ grep -q "/$BASE_PATH/_nuxt/" "$OUT/$BASE_PATH/index.html" \
 grep -q "<title>" "$OUT/$BASE_PATH/index.html" \
   || fail "index.html has no <title> - is it set in nuxt.config app.head?"
 
-python3 - "$OUT/$BASE_PATH/l3.json" <<'PY'
-import json, re, sys
-questions = json.load(open(sys.argv[1]))
-assert len(questions) > 500, f"only {len(questions)} questions"
-# The published data must never carry raw student numbers again.
-raw = [q["id"] for q in questions if q.get("author") and str(q["author"]).strip().isdigit()]
-assert not raw, f"{len(raw)} questions still have un-hashed authors, e.g. {raw[:5]}"
-bad = [q["id"] for q in questions if re.search(r"<p[A-Za-z]|</(?![A-Za-z]|>)", q.get("description_llm") or "")]
-assert not bad, f"malformed explanation markup in {bad[:5]} - run scripts/fix_l3_html.py"
-print(f"    {len(questions)} questions, authors hashed, markup clean")
-PY
+# Node rather than python3: node is guaranteed present here (we just ran the
+# Nuxt build with it), whereas the build image's Python is not ours to rely on.
+node - "$OUT/$BASE_PATH/l3.json" <<'JS'
+// `node -` reads the script from stdin, so the file argument lands in argv[2].
+const questions = JSON.parse(require("node:fs").readFileSync(process.argv[2], "utf8"));
+const die = (m) => { console.error(`::error::${m}`); process.exit(1); };
+
+if (questions.length <= 500) die(`only ${questions.length} questions in l3.json`);
+
+// The published data must never carry raw student numbers again.
+const raw = questions.filter((q) => q.author && /^\d+$/.test(String(q.author).trim()));
+if (raw.length) die(`${raw.length} questions still have un-hashed authors, e.g. ${raw.slice(0, 5).map((q) => q.id)}`);
+
+// `<pFoo` and `</<` make the browser swallow a whole sentence of explanation.
+const bad = questions.filter((q) => /<p[A-Za-z]|<\/(?![A-Za-z]|>)/.test(q.description_llm || ""));
+if (bad.length) die(`malformed explanation markup in ${bad.slice(0, 5).map((q) => q.id)} - run scripts/fix_l3_html.py`);
+
+console.log(`    ${questions.length} questions, authors hashed, markup clean`);
+JS
 
 echo "==> Built $(du -sh "$OUT" | cut -f1) into $OUT"
