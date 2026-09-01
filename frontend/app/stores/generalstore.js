@@ -1,38 +1,38 @@
-export const useGeneralStore = defineStore("general", {
-    state: () => ({
-        landingPopup : false,
-        instructionsPopup : false,
-    }),
-    actions: {
-        toggleLandingPopup() {
-            this.landingPopup = !this.landingPopup;
-            // Store the current timestamp in localStorage when the popup is toggled off
-            if (!this.landingPopup) {
-                const today = new Date().toISOString().split('T')[0];
-                localStorage.setItem('landingPopupLastShownIPT', today);
-            }
-        },
-        toggleInstructionsPopup() {
-            this.instructionsPopup = !this.instructionsPopup;
-        },
-        checkLandingPopup() {
-            const lastShownDate = localStorage.getItem('landingPopupLastShownIPT');
-            const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-            if (lastShownDate === today) {
-                this.landingPopup = false; // Don't show the popup if it's already been shown today
-            } else {
-                this.landingPopup = true; // Otherwise, show the popup
-            }
-        }
-    },
-    getters: {
-        getLandingPopup() {
-            return this.landingPopup;
-        },
-        getInstructionsPopup() {
-            return this.instructionsPopup;
-        },
-    },
-});
+const LANDING_KEY = "landingPopupLastShownIPT";
 
-// You can call the `checkLandingPopup()` action when your app initializes, such as in a component's mounted hook.
+export const useGeneralStore = defineStore("general", {
+  state: () => ({
+    landingPopup: false,
+    instructionsPopup: false,
+  }),
+  actions: {
+    toggleLandingPopup() {
+      this.landingPopup = !this.landingPopup;
+      // Remember the day it was dismissed so it only shows once per day.
+      if (!this.landingPopup) {
+        try {
+          localStorage.setItem(LANDING_KEY, new Date().toISOString().split("T")[0]);
+        } catch {
+          /* private browsing - it will just show again */
+        }
+      }
+    },
+    toggleInstructionsPopup() {
+      this.instructionsPopup = !this.instructionsPopup;
+    },
+    checkLandingPopup() {
+      let lastShownDate = null;
+      try {
+        lastShownDate = localStorage.getItem(LANDING_KEY);
+      } catch {
+        /* ignore */
+      }
+      const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+      this.landingPopup = lastShownDate !== today;
+    },
+  },
+  getters: {
+    getLandingPopup: (state) => state.landingPopup,
+    getInstructionsPopup: (state) => state.instructionsPopup,
+  },
+});

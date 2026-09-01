@@ -1,0 +1,83 @@
+<!--
+  Shown while the app bundle downloads. Inlined into index.html by Nuxt, so it
+  must be self-contained: no external CSS, fonts or images.
+-->
+<div class="quiz-splash" role="status" aria-live="polite">
+  <div class="quiz-splash__ring" id="quiz-splash-ring"></div>
+  <p class="quiz-splash__text" id="quiz-splash-text">Loading the quiz&hellip;</p>
+  <button type="button" class="quiz-splash__retry" id="quiz-splash-retry" hidden>
+    Reload
+  </button>
+</div>
+
+<script>
+  // A cached shell can outlive the hashed chunk it points at (a fresh deploy
+  // renames every chunk), which would otherwise leave the spinner turning
+  // forever. Offer a reload instead of a dead page.
+  (function () {
+    setTimeout(function () {
+      var root = document.getElementById("__nuxt");
+      if (root && root.childElementCount > 0) return; // the app mounted
+      var ring = document.getElementById("quiz-splash-ring");
+      var text = document.getElementById("quiz-splash-text");
+      var retry = document.getElementById("quiz-splash-retry");
+      if (ring) ring.hidden = true;
+      if (text) text.textContent = "The quiz is taking longer than usual to load.";
+      if (retry) {
+        retry.hidden = false;
+        retry.addEventListener("click", function () {
+          location.reload();
+        });
+      }
+    }, 15000);
+  })();
+</script>
+
+<style>
+  .quiz-splash {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: #fae4d4;
+    color: #6b4a3a;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  .quiz-splash__ring {
+    width: 46px;
+    height: 46px;
+    border: 4px solid rgba(200, 25, 25, 0.2);
+    border-top-color: #c81919;
+    border-radius: 50%;
+    animation: quiz-splash-spin 0.9s linear infinite;
+  }
+  .quiz-splash__text {
+    margin: 0;
+    font-size: 0.95rem;
+    letter-spacing: 0.02em;
+    max-width: 22rem;
+    text-align: center;
+  }
+  .quiz-splash__retry {
+    padding: 8px 20px;
+    border: none;
+    border-radius: 999px;
+    background: #c81919;
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  @keyframes quiz-splash-spin {
+    to { transform: rotate(360deg); }
+  }
+  @media (prefers-color-scheme: dark) {
+    .quiz-splash { background: #121212; color: #d8c8bf; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .quiz-splash__ring { animation-duration: 2.4s; }
+  }
+</style>

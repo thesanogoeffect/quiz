@@ -1,0 +1,83 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "frontend/**"
+      - "deploy/**"
+      - ".github/workflows/deploy.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. Do NOT cancel in progress: killing a run while
+# actions/deploy-pages is polling leaves the Pages deployment wedged.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Build static site
+        run: npx nuxt generate --preset github_pages
+        working-directory: ./frontend
+
+      # The app is served from https://quiz.jakubwerner.com/ipt/, so the Nuxt
+      # output (which references /ipt/_nuxt/... internally) has to live in an
+      # /ipt/ directory. deploy/root holds the CNAME plus redirect stubs that
+      # bounce / and /itp/ to /ipt/.
+      - name: Assemble site
+        run: |
+          mkdir -p dist/ipt
+          cp -r frontend/.output/public/. dist/ipt/
+          cp -r deploy/root/. dist/
+          find dist -name '._*' -delete
+          echo "--- dist tree ---"
+          find dist -maxdepth 2 -not -path '*/_nuxt/*' | sort
+
+      - name: Sanity-check the build
+        run: |
+          set -e
+          test -f dist/ipt/index.html        || { echo "::error::missing dist/ipt/index.html"; exit 1; }
+          test -f dist/ipt/l3.json           || { echo "::error::missing dist/ipt/l3.json"; exit 1; }
+          test -f dist/ipt/about/index.html  || { echo "::error::missing dist/ipt/about/index.html"; exit 1; }
+          test -f dist/CNAME                 || { echo "::error::missing dist/CNAME"; exit 1; }
+          test -f dist/.nojekyll             || { echo "::error::missing dist/.nojekyll"; exit 1; }
+          grep -q '/ipt/_nuxt/' dist/ipt/index.html \
+            || { echo "::error::index.html does not reference /ipt/_nuxt/ - is app.baseURL still '/ipt/'?"; exit 1; }
+          python3 -c "import json,sys; d=json.load(open('dist/ipt/l3.json')); assert len(d)>500, len(d); print(f'{len(d)} questions OK')"
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

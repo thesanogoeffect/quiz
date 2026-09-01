@@ -1,0 +1,76 @@
+rules_version = '2';
+
+// Deploy with:  firebase deploy --only firestore:rules
+//
+// The quiz is anonymous - there is no sign-in - so these rules are the ONLY
+// thing standing between the counters and the open internet. Before this file
+// existed, anyone holding the (public, non-secret) web API key could set any
+// field on any question document to any value.
+//
+// The intent: anyone may read one question's counters, and may nudge any of the
+// seven known counters by exactly +/-1. Nothing else.
+//
+// NOT YET VERIFIED AGAINST THE LIVE PROJECT. Before deploying, paste this into
+// the Firebase console -> Firestore -> Rules -> Rules Playground and check:
+//   allow   update questions/1  { times_answered: <current+1> }
+//   deny    update questions/1  { times_answered: 999999 }
+//   deny    update questions/1  { question_title: "x" }
+//   allow   get    questions/1
+// If the rules are too strict the quiz still works - the client logs a warning
+// and carries on - but the community counters silently stop moving.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /questions/{questionId} {
+
+      function changed() {
+        return request.resource.data.diff(resource.data).affectedKeys();
+      }
+
+      // Exactly what FieldValue.increment(+/-1) produces. Anything else - a
+      // jump to 1e9, a type change - fails. A counter missing from the existing
+      // document may only be created as 1 (increment() on an absent field).
+      function movesByOne(field) {
+        return !changed().hasAny([field])
+          || (request.resource.data[field] is int
+              && ((field in resource.data)
+                    ? (request.resource.data[field] == resource.data[field] + 1
+                       || request.resource.data[field] == resource.data[field] - 1)
+                    : request.resource.data[field] == 1));
+      }
+
+      // The app reads one document at a time, by id, so nothing needs to page
+      // through the collection - do not let anyone scrape it.
+      allow get: if true;
+      allow list: if false;
+
+      allow update: if changed().hasOnly([
+                         'times_asked',
+                         'times_answered',
+                         'times_answered_correct',
+                         'times_skipped',
+                         'times_flagged',
+                         'times_upvoted',
+                         'times_downvoted'
+                       ])
+                    && changed().size() > 0
+                    && movesByOne('times_asked')
+                    && movesByOne('times_answered')
+                    && movesByOne('times_answered_correct')
+                    && movesByOne('times_skipped')
+                    && movesByOne('times_flagged')
+                    && movesByOne('times_upvoted')
+                    && movesByOne('times_downvoted');
+
+      // Documents are seeded by the admin pipeline, which uses firebase-admin
+      // and bypasses these rules entirely. A browser never creates or deletes.
+      allow create, delete: if false;
+    }
+
+    // Nothing else in the database is reachable from a browser.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

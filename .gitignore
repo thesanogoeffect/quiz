@@ -133,3 +133,16 @@ dmypy.json
 # Pyre type checker
 .pyre/
 **/.DS_Store
+
+# macOS junk
+._*
+.DS_Store
+
+# Salt used to hash student numbers in the published question set - keep secret
+.author_salt
+
+# Working data with student numbers - never commit (see scripts/anonymize_authors.py)
+data/l2.db
+data/l3.csv
+dashboard/l3.csv
+data/l3.json

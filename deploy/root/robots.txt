@@ -1,0 +1,6 @@
+# Crawlers only read this at the origin root, so it is served from here rather
+# than from the app's /ipt/ base path.
+User-agent: *
+Allow: /
+
+Sitemap: https://quiz.jakubwerner.com/sitemap.xml

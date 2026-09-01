@@ -5,15 +5,18 @@
   "scripts": {
     "build": "nuxt build",
     "dev": "nuxt dev",
-    "generate": "nuxt generate",
+    "generate": "nuxt generate --preset github_pages",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@mdi/font": "^7.4.47",
     "firebase": "^12.2.1",
     "nuxt": "^4.1.2",
-    "vue": "latest",
-    "vue-router": "latest"
+    "pinia": "^2.3.1",
+    "vue": "^3.5.21",
+    "vue-router": "^4.5.1",
+    "vuetify": "^3.10.2"
   },
   "devDependencies": {
     "@pinia/nuxt": "^0.5.5",

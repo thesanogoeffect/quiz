@@ -1,190 +1,226 @@
 <template>
   <!-- Card for the whole question -->
   <v-card
-    class="rounded-xl d-flex flex-column justify-start"
+    class="rounded-xl d-flex flex-column"
     elevation="2"
     :style="{ backgroundColor: questionAreaBackgroundColor }"
   >
     <!-- Question title area -->
     <v-card
-      class="rounded-lg flex-shrink-1"
+      class="rounded-lg flex-shrink-0"
       elevation="2"
       :style="{ backgroundColor: questionTitleBackgroundColor }"
     >
       <v-card-text>
-        <p class="question-text text-center align-center">
-          {{
-            questionStore.currentlyReviewedQuestion
-              ? questionStore.currentlyReviewedQuestion.question_title
-              : ""
-          }}
-        </p>
+        <!-- Correct/incorrect was signalled by colour alone, which is invisible
+             to colour-blind users and to anyone using a screen reader. -->
+        <div class="d-flex align-center justify-center ga-2 mb-2" aria-live="polite">
+          <v-icon :color="outcome.color" size="small">{{ outcome.icon }}</v-icon>
+          <span class="text-body-2 font-weight-medium" :class="outcome.textClass">
+            {{ outcome.label }}
+          </span>
+        </div>
+        <h1 class="question-text text-center">
+          {{ reviewed ? reviewed.question_title : "" }}
+        </h1>
       </v-card-text>
     </v-card>
 
     <v-divider></v-divider>
 
     <!-- Answer options -->
-    <!-- Answer options -->
-    <v-card
-      class="ma-1 d-flex flex-column flex-shrink-1 flex-grow-1 justify-center"
-      elevation="0"
+    <div
+      class="answer-area pa-1 d-flex flex-column justify-center ga-2"
       :style="{ backgroundColor: answerAreaBackgroundColor }"
     >
-      <v-card
+      <div
         v-for="(option, index) in answerOptions"
         :key="index"
-        class="answer-card ma-1 rounded-pill d-flex justify-start align-center flex-shrink-1"
-        :style="answerCardBackgroundColor(index)"
-        elevation="1"
+        class="answer-card rounded-pill d-flex align-center"
+        :style="answerCardStyle(index)"
       >
-        <v-btn class="ml-3" text color="primary">
-          {{ option.label }}
-        </v-btn>
-        <p class="answer-text ma-2 flex-shrink-1">{{ option.text }}</p>
-      </v-card>
-    </v-card>
+        <span class="answer-label" :style="labelStyle(index)">{{ option.label }}</span>
+        <span class="answer-text">{{ option.text }}</span>
+        <!-- The words are hidden on phones, so the label carries them for
+             screen readers regardless of viewport. -->
+        <span
+          v-if="marker(index)"
+          class="answer-marker"
+          :aria-label="marker(index).text"
+        >
+          <span aria-hidden="true">{{ marker(index).symbol }}</span>
+          <span class="answer-marker__text" aria-hidden="true">{{
+            marker(index).text
+          }}</span>
+        </span>
+      </div>
+    </div>
   </v-card>
 </template>
 
-<script>
-import { defineComponent, computed } from "vue";
+<script setup>
+import { computed } from "vue";
+import { useTheme } from "vuetify";
 import { useQuestionStore } from "#imports";
 
-export default defineComponent({
-  name: "ReviewQuestionWindow",
-  setup() {
-    const questionStore = useQuestionStore();
-    const theme = useTheme();
-    const isMobile = computed(() => display.mobile);
+const questionStore = useQuestionStore();
+const theme = useTheme();
+const isLight = computed(() => theme.global.name.value === "light");
 
-    const answerFontSize = computed(() => (isMobile.value ? "1rem" : "1.1rem"));
-    const questionFontSize = computed(() =>
-      isMobile.value ? "1.1rem" : "1.2rem"
-    );
+const reviewed = computed(() => questionStore.getCurrentlyReviewedQuestion);
 
-    const answerOptions = computed(() => {
-      if (!questionStore.currentlyReviewedQuestion) {
-        return [];
-      }
-      return questionStore.currentlyReviewedQuestion.answers.map(
-        (answer, index) => ({
-          label: String.fromCharCode(65 + index), // A, B, C, D...
-          text: answer,
-        })
-      );
-    });
-
-    const answerAreaBackgroundColor = computed(() =>
-      theme.global.name.value === "light" ? "#d68a46" : "#6e4a42"
-    );
-    const questionAreaBackgroundColor = computed(() =>
-      theme.global.name.value === "light" ? "#d68a46" : "#282828"
-    );
-    const questionTitleBackgroundColor = computed(() =>
-      theme.global.name.value === "light" ? "#fdf2ea" : "#282828"
-    );
-
-    const isCorrectAnswer = (index) => {
-      return (
-        index === questionStore.currentlyReviewedQuestion.correct_answer_index
-      );
-    };
-
-    const isIncorrectGuess = (index) => {
-      return (
-        index === questionStore.currentlyReviewedQuestion.guessed_index &&
-        index !== questionStore.currentlyReviewedQuestion.correct_answer_index
-      );
-    };
-
-    const isCorrectGuess = (index) => {
-      return (
-        index === questionStore.currentlyReviewedQuestion.guessed_index &&
-        index === questionStore.currentlyReviewedQuestion.correct_answer_index
-      );
-    };
-
-    const answerCardBackgroundColor = (index) => {
-      if (
-        isCorrectAnswer(index) &&
-        !questionStore.currentlyReviewedQuestion.skipped
-      ) {
-        return { backgroundColor: "#4caf50", color: "white" }; // Success green
-      }
-      if (
-        isCorrectAnswer(index) &&
-        questionStore.currentlyReviewedQuestion.skipped
-      ) {
-        return { backgroundColor: "#c8e6c9", color: "black" }; // Light green for skipped correct answers
-      }
-      if (isIncorrectGuess(index)) {
-        return { backgroundColor: "#ff9800", color: "white" }; // Warning color
-      }
-      return {
-        backgroundColor: theme.global.name.value === "light" ? "#fdf2ea" : "#282828",
-      };
-    };
-
-    return {
-      questionStore,
-      answerOptions,
-      answerFontSize,
-      questionFontSize,
-      isCorrectAnswer,
-      isIncorrectGuess,
-      isCorrectGuess,
-      answerAreaBackgroundColor,
-      questionAreaBackgroundColor,
-      questionTitleBackgroundColor,
-      answerCardBackgroundColor, // Ensure you return the method here
-    };
-  },
+const answerOptions = computed(() => {
+  if (!reviewed.value) return [];
+  return reviewed.value.answers.map((answer, index) => ({
+    label: String.fromCharCode(65 + index), // A, B, C, D...
+    text: answer,
+  }));
 });
+
+const answerAreaBackgroundColor = computed(() =>
+  isLight.value ? "#d68a46" : "#6e4a42"
+);
+const questionAreaBackgroundColor = computed(() =>
+  isLight.value ? "#d68a46" : "#282828"
+);
+const questionTitleBackgroundColor = computed(() =>
+  isLight.value ? "#fdf2ea" : "#282828"
+);
+
+const isCorrectAnswer = (index) =>
+  !!reviewed.value && index === reviewed.value.correct_answer_index;
+
+const isGuess = (index) =>
+  !!reviewed.value &&
+  reviewed.value.guessed_index !== null &&
+  index === reviewed.value.guessed_index;
+
+const outcome = computed(() => {
+  const q = reviewed.value;
+  if (!q) return { label: "", icon: "", color: "", textClass: "" };
+  if (q.skipped) {
+    return {
+      label: "Skipped - here is the answer",
+      icon: "mdi-skip-next-circle-outline",
+      color: "warning",
+      textClass: "text-warning",
+    };
+  }
+  if (q.guessed_index === q.correct_answer_index) {
+    return {
+      label: "Correct!",
+      icon: "mdi-check-circle",
+      color: "success",
+      textClass: "text-success",
+    };
+  }
+  return {
+    label: "Not quite",
+    icon: "mdi-close-circle",
+    color: "error",
+    textClass: "text-error",
+  };
+});
+
+const answerCardStyle = (index) => {
+  if (isCorrectAnswer(index)) {
+    return reviewed.value?.skipped
+      ? { backgroundColor: "#c8e6c9", color: "#1b5e20" }
+      : { backgroundColor: "#2e7d32", color: "#ffffff" };
+  }
+  if (isGuess(index)) {
+    return { backgroundColor: "#c62828", color: "#ffffff" };
+  }
+  return {
+    backgroundColor: isLight.value ? "#fdf2ea" : "#282828",
+  };
+};
+
+const labelStyle = (index) =>
+  isCorrectAnswer(index) || isGuess(index)
+    ? { backgroundColor: "rgba(255,255,255,0.25)", color: "inherit" }
+    : {};
+
+// A marker so the result never depends on colour alone. The symbol stays
+// visible on phones where the label text does not fit.
+const marker = (index) => {
+  if (isCorrectAnswer(index)) {
+    return isGuess(index)
+      ? { symbol: "✓", text: "Your answer" }
+      : { symbol: "✓", text: "Correct answer" };
+  }
+  if (isGuess(index)) return { symbol: "✗", text: "Your answer" };
+  return null;
+};
 </script>
 
 <style scoped>
 .question-text {
-  font-size: 1.25em;
+  font-size: 1.2rem;
+  font-weight: 500;
+  line-height: 1.45;
   text-align: center;
-  max-height: 5em; /* Limits the maximum height of the text */
-  overflow-y: auto; /* Adds a scrollbar if the text exceeds the max height */
-  -webkit-overflow-scrolling: auto;
+  margin: 0;
+}
+
+.answer-area {
+  flex: 0 0 auto;
 }
 
 .answer-card {
-  cursor: default;
-  transition: all 0.3s ease;
-  min-height: 9vh; /* 10% of the viewport height */
-  font-size: 1.05em;
+  width: 100%;
+  min-height: 64px;
+  padding: 12px 20px 12px 12px;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.answer-label {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background-color: #c81919;
+  color: #fff;
+  font-weight: 600;
 }
 
 .answer-text {
-  max-height: 3em; /* Adjust based on how many lines you want */
-  overflow-y: auto; /* Adds a scrollbar if the text exceeds the max height */
-  white-space: normal; /* Wrap the text if it exceeds the line length */
-  -webkit-overflow-scrolling: auto;
+  flex: 1 1 auto;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
-/* Styling for different answer states */
-.correct-answer {
-  background-color: #4caf50; /* Vuetify success color */
-  color: white;
+.answer-marker {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  opacity: 0.95;
+  white-space: nowrap;
 }
 
-.skipped-correct-answer {
-  background-color: #c8e6c9; /* Light green */
-  color: black;
+@media (max-width: 599px) {
+  .question-text {
+    font-size: 1.05rem;
+  }
+  .answer-card {
+    font-size: 0.95rem;
+    padding: 10px 14px 10px 10px;
+  }
+  /* Keep the ✓ / ✗ symbol, drop only the words. */
+  .answer-marker {
+    font-size: 1.05rem;
+  }
+  .answer-marker__text {
+    display: none;
+  }
 }
-
-.incorrect-guess {
-  background-color: #ff9800; /* Vuetify warning color */
-  color: white;
-}
-
-.correct-guess {
-  background-color: #4caf50; /* Vuetify success color */
-  color: white;
-}
-
 </style>

@@ -1,157 +1,126 @@
 <template>
   <v-container class="py-3">
-    <v-row>
-      <v-col>
-        <v-container
-          class="stats-container pa-3 rounded-xl"
-          style="border: 0;"
-          :style="{ backgroundColor: sidebarCardsColor }"
-          elevation="1"
-        >
-          <h2 class="mb-2 text-center">Stats</h2>
-          <v-divider></v-divider>
-          <br>
-          <!-- Existing User Stats -->
-          <v-row>
-            <v-col cols="2" xs="3">
-              <v-icon color="secondary">mdi-eye-outline</v-icon>
-            </v-col>
-            <v-col cols="7" xs="6">Total Shown:</v-col>
-            <v-col cols="3" xs="3">
-              {{ questionStore.getTotalShownQuestions }}
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="2" xs="3">
-              <v-icon color="primary"
-                >mdi-checkbox-marked-circle-outline</v-icon
-              >
-            </v-col>
-            <v-col cols="7" xs="6">Answered:</v-col>
-            <v-col cols="3" xs="3">
-              {{ questionStore.getTotalAnsweredQuestions }}
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="2" xs="3">
-              <v-icon color="success">mdi-check-circle-outline</v-icon>
-            </v-col>
-            <v-col cols="7" xs="6">Correct:</v-col>
-            <v-col cols="3" xs="3">
-              {{ questionStore.getTotalCorrectAnswers }}
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="2" xs="3">
-              <v-icon color="warning">mdi-skip-next-circle-outline</v-icon>
-            </v-col>
-            <v-col cols="7" xs="6">Skipped:</v-col>
-            <v-col cols="3" xs="3">
-              {{ questionStore.getSkippedQuestions }}
-            </v-col>
-          </v-row>
-          <v-row>
-            <v-col cols="2" xs="3">
-              <v-icon color="info">mdi-help-circle-outline</v-icon>
-            </v-col>
-            <v-col cols="7" xs="6">Skips Left:</v-col>
-            <v-col cols="3" xs="3">{{ questionStore.getSkipsRemaining }}</v-col>
-          </v-row>
-          <v-row
-            v-show="questionStore.getTotalAnsweredQuestions > 0"
-            justify="center"
-          >
-            <v-col cols="12" class="text-center">
-              <v-progress-circular
-                :model-value="userPercentage"
-                :color="circularColor"
-                size="85"
-                width="13"
-              >
-                <span :class="percentageClass">{{ formattedPercentage }}%</span>
-              </v-progress-circular>
-            </v-col>
-          </v-row>
+    <v-card
+      class="stats-container pa-3 rounded-xl"
+      flat
+      :style="{ backgroundColor: sidebarCardsColor }"
+    >
+      <h2 class="mb-2 text-center">Stats</h2>
+      <v-divider class="mb-3"></v-divider>
 
-          <!-- Toggle for Global Stats -->
-          <v-row class="mt-4">
-            <v-col cols="12">
-              <v-switch
-                v-model="showGlobalStats"
-                label="Show Community Question Stats"
-                color="primary"
-              ></v-switch>
-            </v-col>
-          </v-row>
-          <!-- Global Stats Section -->
-          <div v-if="showGlobalStats">
-            
-            <h2 class="mb-2 mt-4 text-center">Community Stats for Question</h2>
-            <v-divider></v-divider>
-            <v-row>
-              <v-col cols="2" xs="3">
-                <v-icon color="secondary">mdi-eye-outline</v-icon>
-              </v-col>
-              <v-col cols="7" xs="6">Times Asked:</v-col>
-              <v-col cols="3" xs="3">{{ questionStats.times_asked }}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" xs="3">
-                <v-icon color="success">mdi-check-circle-outline</v-icon>
-              </v-col>
-              <v-col cols="7" xs="6">Answered Correctly:</v-col>
-              <v-col cols="3" xs="3">{{
-                questionStats.times_answered_correct
-              }}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" xs="3">
-                <v-icon color="primary"
-                  >mdi-checkbox-marked-circle-outline</v-icon
-                >
-              </v-col>
-              <v-col cols="7" xs="6">Times Answered:</v-col>
-              <v-col cols="3" xs="3">{{ questionStats.times_answered }}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" xs="3">
-                <v-icon color="warning">mdi-skip-next-circle-outline</v-icon>
-              </v-col>
-              <v-col cols="7" xs="6">Times Skipped:</v-col>
-              <v-col cols="3" xs="3">{{ questionStats.times_skipped }}</v-col>
-            </v-row>
-            <v-row>
-              <v-col cols="2" xs="3">
-                <v-icon color="error">mdi-flag-outline</v-icon>
-              </v-col>
-              <v-col cols="7" xs="6">Times Flagged:</v-col>
-              <v-col cols="3" xs="3">{{ questionStats.times_flagged }}</v-col>
-            </v-row>
-            <v-row v-show="questionStats.times_answered > 0" justify="center">
-              <v-col cols="12" class="text-center">
-                <v-progress-circular
-                  :model-value="correctPercentage"
-                  :color="globalCircularColor"
-                  size="78"
-                  width="10"
-                >
-                  <span :class="globalPercentageClass"
-                    >{{ correctPercentage.toFixed(1) }}%</span
-                  >
-                </v-progress-circular>
-                <div>Community Percentage</div>
-              </v-col>
-            </v-row>
+      <!-- Existing User Stats -->
+      <div class="stat-row">
+        <v-icon color="secondary" size="small">mdi-eye-outline</v-icon>
+        <span class="stat-label">Total Shown:</span>
+        <span class="stat-value">{{ questionStore.getTotalShownQuestions }}</span>
+      </div>
+      <div class="stat-row">
+        <v-icon color="primary" size="small">mdi-checkbox-marked-circle-outline</v-icon>
+        <span class="stat-label">Answered:</span>
+        <span class="stat-value">{{ questionStore.getTotalAnsweredQuestions }}</span>
+      </div>
+      <div class="stat-row">
+        <v-icon color="success" size="small">mdi-check-circle-outline</v-icon>
+        <span class="stat-label">Correct:</span>
+        <span class="stat-value">{{ questionStore.getTotalCorrectAnswers }}</span>
+      </div>
+      <div class="stat-row">
+        <v-icon color="warning" size="small">mdi-skip-next-circle-outline</v-icon>
+        <span class="stat-label">Skipped:</span>
+        <span class="stat-value">{{ questionStore.getSkippedQuestions }}</span>
+      </div>
+      <div class="stat-row">
+        <v-icon color="info" size="small">mdi-help-circle-outline</v-icon>
+        <span class="stat-label">Skips Left:</span>
+        <span class="stat-value">{{ questionStore.getSkipsRemaining }}</span>
+      </div>
+
+      <div v-show="questionStore.getTotalAnsweredQuestions > 0" class="text-center mt-4">
+        <v-progress-circular
+          :model-value="userPercentage"
+          :color="circularColor"
+          size="85"
+          width="13"
+        >
+          <span :class="percentageClass">{{ formattedPercentage }}%</span>
+        </v-progress-circular>
+        <div class="text-caption text-medium-emphasis">Your accuracy</div>
+      </div>
+
+      <!-- Toggle for Global Stats -->
+      <v-switch
+        v-model="showGlobalStats"
+        label="Show community stats"
+        color="primary"
+        density="compact"
+        hide-details
+        class="mt-3"
+      ></v-switch>
+
+      <!-- Global Stats Section -->
+      <div v-if="showGlobalStats">
+        <h2 class="mb-2 mt-4 text-center">Community Stats</h2>
+        <v-divider class="mb-3"></v-divider>
+
+        <v-alert
+          v-if="!questionStatsStore.getStatsAvailable"
+          type="info"
+          variant="tonal"
+          density="compact"
+          class="mb-3 rounded-lg text-caption"
+        >
+          Community stats are unavailable right now.
+        </v-alert>
+
+        <div class="stat-row">
+          <v-icon color="secondary" size="small">mdi-eye-outline</v-icon>
+          <span class="stat-label">Times Asked:</span>
+          <span class="stat-value">{{ questionStats.times_asked }}</span>
+        </div>
+        <div class="stat-row">
+          <v-icon color="success" size="small">mdi-check-circle-outline</v-icon>
+          <span class="stat-label">Answered Correctly:</span>
+          <span class="stat-value">{{ questionStats.times_answered_correct }}</span>
+        </div>
+        <div class="stat-row">
+          <v-icon color="primary" size="small">mdi-checkbox-marked-circle-outline</v-icon>
+          <span class="stat-label">Times Answered:</span>
+          <span class="stat-value">{{ questionStats.times_answered }}</span>
+        </div>
+        <div class="stat-row">
+          <v-icon color="warning" size="small">mdi-skip-next-circle-outline</v-icon>
+          <span class="stat-label">Times Skipped:</span>
+          <span class="stat-value">{{ questionStats.times_skipped }}</span>
+        </div>
+        <div class="stat-row">
+          <v-icon color="error" size="small">mdi-flag-outline</v-icon>
+          <span class="stat-label">Times Reported:</span>
+          <span class="stat-value">{{ questionStats.times_flagged }}</span>
+        </div>
+
+        <div v-show="questionStats.times_answered > 0" class="text-center mt-3">
+          <v-progress-circular
+            :model-value="correctPercentage"
+            :color="globalCircularColor"
+            size="78"
+            width="10"
+          >
+            <span :class="globalPercentageClass"
+              >{{ correctPercentage.toFixed(1) }}%</span
+            >
+          </v-progress-circular>
+          <div class="text-caption text-medium-emphasis">
+            Everyone else on this question
           </div>
-        </v-container>
-      </v-col>
-    </v-row>
+        </div>
+      </div>
+    </v-card>
   </v-container>
-  <v-divider></v-divider>
 </template>
 
 <script setup>
-import { computed, ref, onMounted } from "vue";
+import { computed, ref } from "vue";
+import { useTheme } from "vuetify";
 import { useQuestionStore, useQuestionStatsStore } from "#imports";
 
 const showGlobalStats = ref(false);
@@ -168,22 +137,14 @@ const userPercentage = computed(
 );
 const formattedPercentage = computed(() => userPercentage.value.toFixed(1));
 const circularColor = computed(() => {
-  if (userPercentage.value >= 70) {
-    return "success";
-  } else if (userPercentage.value >= 40) {
-    return "warning";
-  } else {
-    return "error";
-  }
+  if (userPercentage.value >= 70) return "success";
+  if (userPercentage.value >= 40) return "warning";
+  return "error";
 });
 const percentageClass = computed(() => {
-  if (userPercentage.value >= 70) {
-    return "text-success";
-  } else if (userPercentage.value >= 40) {
-    return "text-warning";
-  } else {
-    return "text-error";
-  }
+  if (userPercentage.value >= 70) return "text-success";
+  if (userPercentage.value >= 40) return "text-warning";
+  return "text-error";
 });
 
 const currentQuestion = computed(() =>
@@ -191,9 +152,8 @@ const currentQuestion = computed(() =>
     ? questionStore.getCurrentlyReviewedQuestion
     : questionStore.getCurrentQuestion
 );
-console.log(currentQuestion.value);
 const currentQuestionId = computed(() =>
-  currentQuestion.value ? currentQuestion.value.id : null
+  currentQuestion.value ? String(currentQuestion.value.id) : null
 );
 const questionStats = computed(
   () =>
@@ -215,52 +175,46 @@ const correctPercentage = computed(() => {
         questionStats.value.times_answered) *
       100
     );
-  } else {
-    return 0;
   }
+  return 0;
 });
 
 const globalCircularColor = computed(() => {
-  if (correctPercentage.value >= 60) {
-    return "success";
-  } else if (correctPercentage.value >= 30) {
-    return "warning";
-  } else {
-    return "error";
-  }
+  if (correctPercentage.value >= 60) return "success";
+  if (correctPercentage.value >= 30) return "warning";
+  return "error";
 });
 
 const globalPercentageClass = computed(() => {
-  if (correctPercentage.value >= 70) {
-    return "text-success";
-  } else if (correctPercentage.value >= 40) {
-    return "text-warning";
-  } else {
-    return "text-error";
-  }
+  if (correctPercentage.value >= 70) return "text-success";
+  if (correctPercentage.value >= 40) return "text-warning";
+  return "text-error";
 });
 </script>
 
 <style scoped>
 .stats-container {
-  border: 1px solid #ddd;
-  border-radius: 8px;
-  padding: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 h2 {
   font-weight: bold;
-  font-size: 1.5rem;
+  font-size: 1.35rem;
 }
 
-h3 {
-  font-weight: 500;
-  font-size: 1.2rem;
-  color: #666;
+/* A grid rather than v-row/v-col: the old markup used xs="…" props, which do
+   not exist in Vuetify 3, so the columns never reflowed as intended. */
+.stat-row {
+  display: grid;
+  grid-template-columns: 24px 1fr auto;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
 }
 
-.v-progress-circular {
-  margin: 10px 0;
+.stat-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
 }
 </style>

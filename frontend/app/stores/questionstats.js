@@ -6,6 +6,47 @@ import { getQuestionById, incrementQuestionFields } from "~/services/firestore";
 // It will have a function that will fetch the data from Firestore based on the question_id
 // Also increment functions for the question_id
 
+// Reader and writer used to disagree on the upvote key, which silently threw
+// away every upvote on reload. Keep all three in one place.
+const STORAGE_KEYS = {
+  upvote: "ipt_quiz_upvote_cache",
+  downvote: "ipt_downvote_cache",
+  flag: "ipt_quiz_flag_cache",
+};
+// The upvote cache used to be written here while being read from
+// "ipt_upvote_cache"; migrate whichever copy an existing user has.
+const LEGACY_UPVOTE_KEY = "ipt_upvote_cache";
+
+const EMPTY_STATS = {
+  times_asked: 0,
+  times_answered_correct: 0,
+  times_skipped: 0,
+  times_flagged: 0,
+  times_answered: 0,
+  times_upvoted: 0,
+  times_downvoted: 0,
+};
+
+function readCache(key) {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch (error) {
+    console.warn(`Ignoring unreadable ${key}:`, error);
+    return null;
+  }
+}
+
+function writeCache(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(`Could not persist ${key}:`, error);
+  }
+}
+
 export const useQuestionStatsStore = defineStore("questionstats", {
   state: () => ({
     current_question_stats: null, // a dictionary, as retrieved from Firestore or cache
@@ -19,6 +60,8 @@ export const useQuestionStatsStore = defineStore("questionstats", {
 
     current_questions_increment_fields: {}, // {int: dict} a dictionary of question_id to fields to increment, current proposed changes
     cached_questions_increment_fields: {}, // keeping track of what was already sent to Firestore
+
+    statsAvailable: true, // false once Firestore has failed, so the UI can hide community numbers
 
     PERSISTENT_KEYS_ACROSS_SESSIONS: [
       "times_flagged",
@@ -61,79 +104,81 @@ export const useQuestionStatsStore = defineStore("questionstats", {
       return state.flag_cache;
     },
     getUpvoteCacheById: (state) => (question_id) => {
-      return state.upvote_cache[question_id];
+      return !!state.upvote_cache[question_id];
     },
     getDownvoteCacheById: (state) => (question_id) => {
-      return state.downvote_cache[question_id];
+      return !!state.downvote_cache[question_id];
     },
     getFlagCacheById: (state) => (question_id) => {
-      return state.flag_cache[question_id];
+      return !!state.flag_cache[question_id];
     },
+    getStatsAvailable: (state) => state.statsAvailable,
   },
 
   actions: {
+    // Question ids are numbers in l3.json but Firestore document ids are
+    // strings. Everything in this store keys off the string form so the caches
+    // and the documents cannot drift apart.
+    key(question_id) {
+      return String(question_id);
+    },
     async fetchQuestionStats(question_id) {
-      // Fetch question stats from Firestore
-      this.current_question_id = question_id;
-      // Now fetch the dict based on question_id from Firestore, if not in cache
-      if (question_id in this.question_cache) {
-        this.current_question_stats = this.getQuestionStatsById(question_id);
-        console.log("Fetched from cache");
+      const id = this.key(question_id);
+      this.current_question_id = id;
+
+      if (id in this.question_cache) {
+        this.current_question_stats = this.question_cache[id];
+        // Rebuilt, not preserved: a question served a second time in one
+        // session needs a fresh baseline, or its counters are never sent.
+        this.preBuildIncrementFields(id, { force: true });
         return;
       }
-      this.current_question_stats = await getQuestionById(question_id);
-      // save to cache
-      this.question_cache[question_id] = { ...this.current_question_stats };
 
-      //generate upvote, downvote and flag cache, if not found in local storage
-      if (!this.upvote_cache[question_id]) {
-        this.upvote_cache[question_id] = false;
-      }
-      if (!this.downvote_cache[question_id]) {
-        this.downvote_cache[question_id] = false;
-      }
-      if (!this.flag_cache[question_id]) {
-        this.flag_cache[question_id] = false;
+      let stats = null;
+      let missing = false;
+      try {
+        stats = await getQuestionById(id);
+      } catch (error) {
+        // A missing document or an offline browser must not stop the quiz -
+        // fall back to zeroes and carry on.
+        console.warn(`No community stats for question ${id}:`, error?.message);
+        missing = error?.code === "not-found";
+        if (!missing) this.statsAvailable = false;
       }
 
-      // generate the increment fields
-      await this.preBuildIncrementFields(question_id);
+      this.current_question_stats = { ...EMPTY_STATS, ...(stats || {}) };
+      // Only cache a value we actually believe. Caching zeroes after a network
+      // blip would show 0s for that question for the rest of the session, since
+      // the cache-hit branch above never re-fetches.
+      if (stats || missing) {
+        this.question_cache[id] = this.current_question_stats;
+      }
+
+      this.preBuildIncrementFields(id, { force: true });
     },
     loadUpvoteCacheFromLocalStorage() {
-      // Load the upvote cache from local storage
-      const cache = localStorage.getItem("ipt_upvote_cache");
-      if (cache) {
-        this.upvote_cache = JSON.parse(cache);
-      }
+      this.upvote_cache =
+        readCache(STORAGE_KEYS.upvote) || readCache(LEGACY_UPVOTE_KEY) || {};
     },
     loadDownvoteCacheFromLocalStorage() {
-      // Load the downvote cache from local storage
-      const cache = localStorage.getItem("ipt_downvote_cache");
-      if (cache) {
-        this.downvote_cache = JSON.parse(cache);
-      }
+      this.downvote_cache = readCache(STORAGE_KEYS.downvote) || {};
     },
     loadFlagCacheFromLocalStorage() {
-      // Load the flag cache from local storage
-      const cache = localStorage.getItem("ipt_quiz_flag_cache");
-      if (cache) {
-        this.flag_cache = JSON.parse(cache);
-      }
+      this.flag_cache = readCache(STORAGE_KEYS.flag) || {};
+    },
+    loadInteractionsCacheFromLocalStorage() {
+      this.loadUpvoteCacheFromLocalStorage();
+      this.loadDownvoteCacheFromLocalStorage();
+      this.loadFlagCacheFromLocalStorage();
     },
     saveUpvoteCacheToLocalStorage() {
-      // Save the upvote cache to local storage
-      localStorage.setItem("ipt_quiz_upvote_cache", JSON.stringify(this.upvote_cache));
+      writeCache(STORAGE_KEYS.upvote, this.upvote_cache);
     },
     saveDownvoteCacheToLocalStorage() {
-      // Save the downvote cache to local storage
-      localStorage.setItem(
-        "ipt_downvote_cache",
-        JSON.stringify(this.downvote_cache)
-      );
+      writeCache(STORAGE_KEYS.downvote, this.downvote_cache);
     },
     saveFlagCacheToLocalStorage() {
-      // Save the flag cache to local storage
-      localStorage.setItem("ipt_quiz_flag_cache", JSON.stringify(this.flag_cache));
+      writeCache(STORAGE_KEYS.flag, this.flag_cache);
     },
 
     saveInteractionsCacheToLocalStorage() {
@@ -142,130 +187,137 @@ export const useQuestionStatsStore = defineStore("questionstats", {
       this.saveFlagCacheToLocalStorage();
     },
 
+    // Records a pending counter increment for a question. Safe to call before
+    // the question's fields have been pre-built.
+    markPending(question_id, field) {
+      const id = this.key(question_id);
+      if (!this.current_questions_increment_fields[id]) {
+        this.preBuildIncrementFields(id);
+      }
+      this.current_questions_increment_fields[id][field] = true;
+    },
 
     async batchFetchQuestionStats(question_ids) {
-      // Fetch question stats from Firestore
       for (const question_id of question_ids) {
         await this.fetchQuestionStats(question_id);
       }
     },
     async incrementSpecificQuestionFields(question_id) {
-      // yeet into Firestore
+      const id = this.key(question_id);
       // get the current proposed changes to Firestore
-      const fields = this.getCurrentIncrementFieldsbyId(question_id);
+      const fields = this.getCurrentIncrementFieldsbyId(id);
       // look to see if the fields were already sent to Firestore
-      const cached_fields = this.getCachedIncrementFieldsbyId(question_id);
-      // console.log("Incrementing fields for question_id: " + question_id);
+      const cached_fields = this.getCachedIncrementFieldsbyId(id);
       // get only the key: value pairs that differ from the cached fields
       const fields_to_increment = [];
       const fields_to_decrement = [];
       for (const [key, value] of Object.entries(fields)) {
-        if (value != cached_fields[key]) {
-          if (value) {
-            fields_to_increment.push(key);
-            if (!this.PERSISTENT_KEYS_ACROSS_SESSIONS.includes(key)) { // if the key is persistent, its is an upvote, downvote etc. we are handling that differently because of real-time updates. this functionality
-              // console.log("Incrementing to stats cache" + key);
-              this.question_cache[question_id][key] += 1;
-            }
-          } else if (!value) {
-            fields_to_decrement.push(key);
-            if (!this.PERSISTENT_KEYS_ACROSS_SESSIONS.includes(key)) {
-              // console.log("Decrementing in stats cache" + key);
-              this.question_cache[question_id][key] -= 1;
-            }
-          }
+        if (Boolean(value) === Boolean(cached_fields[key])) continue;
+        const target = value ? fields_to_increment : fields_to_decrement;
+        target.push(key);
+        // Votes and flags are mirrored into the local stats the moment the user
+        // clicks, so only the passive counters are adjusted here.
+        if (!this.PERSISTENT_KEYS_ACROSS_SESSIONS.includes(key)) {
+          this.bumpCachedStat(id, key, value ? 1 : -1);
         }
       }
-      // now also update the cache
-      // for the false values, decrement the fields
-      // for the true values, increment the fields
-      // process the increment fields in Firestore
-      await incrementQuestionFields(question_id, fields_to_increment, false);
-      await incrementQuestionFields(question_id, fields_to_decrement, true);
-      // update the cache
-      this.cached_questions_increment_fields[question_id] = { ...fields };
+
+      if (fields_to_increment.length === 0 && fields_to_decrement.length === 0) {
+        return; // nothing changed since the last flush
+      }
+
+      // Record what is being sent BEFORE awaiting. pagehide and
+      // visibilitychange both fire when a tab closes, and both flush; without
+      // this the second call sees an unchanged baseline and double-counts.
+      this.cached_questions_increment_fields[id] = { ...fields };
+
+      await incrementQuestionFields(id, fields_to_increment, false);
+      await incrementQuestionFields(id, fields_to_decrement, true);
+    },
+    bumpCachedStat(question_id, field, delta) {
+      const id = this.key(question_id);
+      if (!this.question_cache[id]) {
+        this.question_cache[id] = { ...EMPTY_STATS };
+      }
+      const current = Number(this.question_cache[id][field]) || 0;
+      this.question_cache[id][field] = Math.max(0, current + delta);
     },
     upvoteSpecificQuestion(question_id) {
-      // Upvote the selected question in retrospect
-      this.upvote_cache[question_id] = true;
-      this.current_questions_increment_fields[question_id][
-        "times_upvoted"
-      ] = true;
-      this.question_cache[question_id]["times_upvoted"] += 1;
-      if (this.getDownvoteCacheById(question_id)) {
-        this.cancelDownvoteSpecificQuestion(question_id);
+      const id = this.key(question_id);
+      this.upvote_cache[id] = true;
+      this.markPending(id, "times_upvoted");
+      this.bumpCachedStat(id, "times_upvoted", 1);
+      if (this.getDownvoteCacheById(id)) {
+        this.cancelDownvoteSpecificQuestion(id);
       }
+      this.saveUpvoteCacheToLocalStorage();
     },
     downvoteSpecificQuestion(question_id) {
-      // Downvote the selected question in retrospect
-      this.downvote_cache[question_id] = true;
-      this.current_questions_increment_fields[question_id][
-        "times_downvoted"
-      ] = true;
-      this.question_cache[question_id]["times_downvoted"] += 1;
-      if (this.getUpvoteCacheById(question_id)) {
-        this.cancelUpvoteSpecificQuestion(question_id);
+      const id = this.key(question_id);
+      this.downvote_cache[id] = true;
+      this.markPending(id, "times_downvoted");
+      this.bumpCachedStat(id, "times_downvoted", 1);
+      if (this.getUpvoteCacheById(id)) {
+        this.cancelUpvoteSpecificQuestion(id);
       }
+      this.saveDownvoteCacheToLocalStorage();
     },
     flagSpecificQuestion(question_id) {
-      // Flag the selected question in retrospect
-      this.flag_cache[question_id] = true;
-      this.current_questions_increment_fields[question_id][
-        "times_flagged"
-      ] = true;
-      this.question_cache[question_id]["times_flagged"] += 1;
+      const id = this.key(question_id);
+      this.flag_cache[id] = true;
+      this.markPending(id, "times_flagged");
+      this.bumpCachedStat(id, "times_flagged", 1);
+      this.saveFlagCacheToLocalStorage();
     },
     cancelUpvoteSpecificQuestion(question_id) {
-      // Deupvote the selected question in retrospect
-      this.upvote_cache[question_id] = false;
-      if (this.current_questions_increment_fields[question_id]) {
-        this.current_questions_increment_fields[question_id][
-        "times_upvoted"
-        ] = null;
-      }
-      this.question_cache[question_id]["times_upvoted"] -= 1;
+      const id = this.key(question_id);
+      this.upvote_cache[id] = false;
+      this.markPending(id, "times_upvoted");
+      this.current_questions_increment_fields[id]["times_upvoted"] = null;
+      this.bumpCachedStat(id, "times_upvoted", -1);
+      this.saveUpvoteCacheToLocalStorage();
     },
     cancelDownvoteSpecificQuestion(question_id) {
-      // Dedownvote the selected question in retrospect
-      this.downvote_cache[question_id] = false;
-      if (this.current_questions_increment_fields[question_id]) {
-        this.current_questions_increment_fields[question_id][
-        "times_downvoted"
-        ] = null;
-      }
-      this.question_cache[question_id]["times_downvoted"] -= 1;
+      const id = this.key(question_id);
+      this.downvote_cache[id] = false;
+      this.markPending(id, "times_downvoted");
+      this.current_questions_increment_fields[id]["times_downvoted"] = null;
+      this.bumpCachedStat(id, "times_downvoted", -1);
+      this.saveDownvoteCacheToLocalStorage();
     },
     cancelFlagSpecificQuestion(question_id) {
-      // Deflag the selected question in retrospect
-      this.flag_cache[question_id] = false;
-      this.current_questions_increment_fields[question_id][
-        "times_flagged"
-      ] = null;
-      this.question_cache[question_id]["times_flagged"] -= 1;
+      const id = this.key(question_id);
+      this.flag_cache[id] = false;
+      this.markPending(id, "times_flagged");
+      this.current_questions_increment_fields[id]["times_flagged"] = null;
+      this.bumpCachedStat(id, "times_flagged", -1);
+      this.saveFlagCacheToLocalStorage();
     },
-    // reset current_question_increment_fields
 
-    async preBuildIncrementFields(id) {
+    // force: reset the baseline for a fresh serve of this question.
+    // Without force it only initialises, so markPending() can be called before
+    // the question has been fetched without wiping a pending edit.
+    preBuildIncrementFields(id, { force = false } = {}) {
       // populate the current_questions_increment_fields and cached_questions_increment_fields with new_question_increment_fields
+      const key = this.key(id);
+      if (!force && this.current_questions_increment_fields[key]) return;
 
-      this.current_questions_increment_fields[id] = {
+      this.current_questions_increment_fields[key] = {
         ...this.new_question_increment_fields,
       };
-      this.cached_questions_increment_fields[id] = {
+      this.cached_questions_increment_fields[key] = {
         ...this.new_question_increment_fields,
       };
-      // now look into the local storage if the user already upvoted, dwonvoted or flagged the question
-      if (this.upvote_cache[id]) {
-        this.current_questions_increment_fields[id]["times_upvoted"] = true;
-        this.cached_questions_increment_fields[id]["times_upvoted"] = true;
-      }
-      if (this.downvote_cache[id]) {
-        this.current_questions_increment_fields[id]["times_downvoted"] = true;
-        this.cached_questions_increment_fields[id]["times_downvoted"] = true;
-      }
-      if (this.flag_cache[id]) {
-        this.current_questions_increment_fields[id]["times_flagged"] = true;
-        this.cached_questions_increment_fields[id]["times_flagged"] = true;
+      // now look into the local storage if the user already upvoted, downvoted or flagged the question
+      for (const [cacheName, field] of [
+        ["upvote_cache", "times_upvoted"],
+        ["downvote_cache", "times_downvoted"],
+        ["flag_cache", "times_flagged"],
+      ]) {
+        if (this[cacheName][key]) {
+          this.current_questions_increment_fields[key][field] = true;
+          this.cached_questions_increment_fields[key][field] = true;
+        }
       }
     },
   },

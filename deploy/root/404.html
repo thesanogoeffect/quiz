@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Not found &middot; Intro to P&amp;T Quiz</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <script>
+      // GitHub Pages serves this for any path that is not a real file. Keep the
+      // requested page where we can: /itp/questions and /questions both belong
+      // under /ipt/. Only known routes are mapped across - sending an unknown
+      // path back under /ipt/ would 404 again and loop forever.
+      (function () {
+        var ROUTES = { "": "/", "/": "/", "/about": "/about/", "/questions": "/questions/" };
+        var rest = location.pathname
+          .replace(/^\/(ipt|itp)(?=\/|$)/, "")
+          .replace(/\/$/, "");
+        var target = ROUTES[rest] || "/";
+        location.replace("/ipt" + target + location.search + location.hash);
+      })();
+    </script>
+    <style>
+      body {
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+        background: #fae4d4;
+        color: #3a2a22;
+        display: grid;
+        place-items: center;
+        min-height: 100vh;
+        margin: 0;
+        text-align: center;
+      }
+      a { color: #c81919; }
+    </style>
+  </head>
+  <body>
+    <p>Taking you to the <a href="/ipt/">Intro to P&amp;T Quiz</a>&hellip;</p>
+  </body>
+</html>

@@ -1,33 +1,36 @@
 <template>
-  <v-dialog
-    v-model="generalStore.landingPopup"
-    max-width="800px"
-    persistent
-  >
+  <v-dialog v-model="generalStore.landingPopup" max-width="800px" persistent scrollable>
     <v-card class="rounded-xl">
       <v-card-title class="headline text-center">Welcome</v-card-title>
       <v-card-text class="mx-4">
         <section class="my-3">
-          <h3>Hi, welcome to the Intro to Psychology & Technology Quiz! 👋</h3>
+          <h3>Hi, welcome to the Intro to Psychology &amp; Technology Quiz! 👋</h3>
           <v-divider class="my-3"></v-divider>
           <p>
-            This app is a student-made project for the <strong>Intro to P&T</strong> course at the TU/e Eindhoven.
-            It uses questions made by previous years' students like me, and from the official OpenStax book. It is not an official part of the TU/e course, just a passion project.
+            This app is a student-made project for the <strong>Intro to P&amp;T</strong>
+            course at TU/e Eindhoven. It uses questions written by previous years'
+            students like me, and from the official OpenStax book. It is not an
+            official part of the TU/e course, just a passion project.
           </p>
-          <br />
-          <p>
-            You can find out how many questions there currently are <NuxtLink to="https://ipt-quiz.streamlit.app/" target="_blank">here</NuxtLink> 👀
+          <p class="mt-3">
+            There are <strong>{{ questionCount }}</strong> questions across
+            {{ chapterCount }} chapters - see the
+            <NuxtLink :to="{ name: 'questions' }">question bank</NuxtLink> for the
+            breakdown. 👀
           </p>
         </section>
 
         <section class="my-3">
-          <h3>Disclaimer:</h3>
+          <h3>Disclaimer</h3>
           <v-divider class="my-2"></v-divider>
-          ⚠️ <strong> I am not responsible for any mistakes or inaccuracies.</strong> ⚠️
-
           <p>
-            Some questions <b>might be incorrect</b> as I used AI when processing them - please stay vigilant.
-            <br> <b>If anything seems out of place, please let me know</b>.
+            ⚠️ <strong>I am not responsible for any mistakes or inaccuracies.</strong> ⚠️
+          </p>
+          <p>
+            Some questions <b>might be incorrect</b> - AI was used to process them,
+            so please stay vigilant.
+            <br />
+            <b>If anything seems out of place, flag it</b> with the flag button.
           </p>
         </section>
 
@@ -37,50 +40,39 @@
 
         <section class="my-3 text-center">
           <h3>
-            If you have any feedback or want to support the project,<br> check the
-            <NuxtLink to="/about">About</NuxtLink> page! ❤️
+            If you have any feedback or want to support the project,<br />
+            check the <NuxtLink :to="{ name: 'about' }">About</NuxtLink> page! ❤️
           </h3>
-          <p class="mt-4">Happy quizzing! <br /> Jakub </p>
+          <p class="mt-4">Happy quizzing! <br /> Jakub</p>
         </section>
       </v-card-text>
     </v-card>
   </v-dialog>
 </template>
 
-<script>
-import { ref, onMounted, computed } from "vue";
+<script setup>
+import { computed, onMounted } from "vue";
 import { useGeneralStore } from "~/stores/generalstore";
-import { useDisplay } from "#imports";
-export default {
-  name: "LandingPopup",
-  setup() {
-    const generalStore = useGeneralStore();
-    const display = useDisplay();
-    const mdAndUp = computed(() => display.mdAndUp);
-    const mobile = computed(() => display.mobile);
+import { useQuestionStore } from "#imports";
 
-    const closeDialog = () => {
-      generalStore.toggleLandingPopup();
-    };
+const generalStore = useGeneralStore();
+const questionStore = useQuestionStore();
 
-    onMounted(() => {
-      generalStore.checkLandingPopup();
-      const urlParams = new URLSearchParams(window.location.search);
-    });
+const questionCount = computed(() => questionStore.getTotalQuestions || "…");
+const chapterCount = computed(() => questionStore.getAllChapters.length || "…");
 
-    return {
-      closeDialog,
-      generalStore,
-      mdAndUp,
-      mobile,
-    };
-  },
+const closeDialog = () => {
+  generalStore.toggleLandingPopup();
 };
+
+onMounted(() => {
+  generalStore.checkLandingPopup();
+});
 </script>
 
 <style scoped>
-.notice {
-  font-size: 0.8rem;
-  color: gray;
+.headline {
+  font-size: 1.5rem;
+  font-weight: bold;
 }
 </style>

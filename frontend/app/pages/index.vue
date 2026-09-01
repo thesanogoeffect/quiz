@@ -2,143 +2,194 @@
   <v-app>
     <LandingPopup />
     <InstructionsPopup />
- 
-    <v-sheet>
-      <v-layout column fill-height>
-        <!-- App Bar -->
-        <v-app-bar color="primary" prominent>
-          <v-app-bar-nav-icon
-            variant="text"
-            @click="drawer = !drawer"
-            icon="mdi-chart-bar"
-          ></v-app-bar-nav-icon>  
 
-          <v-toolbar-title class="app_title">
-            Intro to P&T Quiz
-          </v-toolbar-title>
+    <v-layout class="quiz-layout">
+      <!-- App Bar -->
+      <v-app-bar color="primary" density="comfortable" flat>
+        <v-app-bar-nav-icon
+          variant="text"
+          @click="drawer = !drawer"
+          icon="mdi-chart-bar"
+          aria-label="Toggle your stats"
+          title="Your stats"
+        ></v-app-bar-nav-icon>
 
-          <v-spacer></v-spacer>
-          <v-btn
-            icon="mdi-filter"
-            variant="text"
-            @click="filterDialog = true"
-          ></v-btn>
-          <v-btn icon="mdi-theme-light-dark" @click="toggleTheme"></v-btn>
-          <NuxtLink :to="{ name: 'about' }" class="no-blue-link">
-            <v-btn icon="mdi-information" variant="text"></v-btn>
-          </NuxtLink>
-          <v-btn icon="mdi-help-circle" @click="openPopup"></v-btn>
+        <v-toolbar-title class="app_title">
+          {{ mdAndUp ? "Intro to P&amp;T Quiz" : "P&amp;T Quiz" }}
+        </v-toolbar-title>
+
+        <v-spacer></v-spacer>
+
+        <v-btn
+          icon="mdi-filter"
+          variant="text"
+          aria-label="Filter questions"
+          title="Filter questions"
+          @click="filterDialog = true"
+        ></v-btn>
+        <v-btn
+          :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+          variant="text"
+          :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          :title="isDark ? 'Light mode' : 'Dark mode'"
+          @click="toggleTheme"
+        ></v-btn>
+        <v-btn
+          icon="mdi-help-circle"
+          variant="text"
+          aria-label="How this works"
+          title="How this works"
+          @click="openPopup"
+        ></v-btn>
+
+        <!-- Secondary actions collapse into a menu on phones so nothing is
+             pushed off the edge of the toolbar. -->
+        <v-menu v-if="!mdAndUp">
+          <template v-slot:activator="{ props }">
+            <v-btn
+              icon="mdi-dots-vertical"
+              variant="text"
+              aria-label="More"
+              v-bind="props"
+            ></v-btn>
+          </template>
+          <v-list density="compact">
+            <v-list-item
+              prepend-icon="mdi-chart-bell-curve"
+              title="Question bank"
+              :to="{ name: 'questions' }"
+            ></v-list-item>
+            <v-list-item
+              prepend-icon="mdi-information"
+              title="About"
+              :to="{ name: 'about' }"
+            ></v-list-item>
+            <v-list-item
+              prepend-icon="mdi-format-align-right"
+              title="Question info"
+              @click="toggleRightDrawer"
+            ></v-list-item>
+          </v-list>
+        </v-menu>
+
+        <template v-else>
           <v-btn
             icon="mdi-chart-bell-curve"
             variant="text"
-            @click="openDashboardInNewTab"
+            aria-label="Question bank"
+            title="Question bank"
+            :to="{ name: 'questions' }"
           ></v-btn>
-
+          <v-btn
+            icon="mdi-information"
+            variant="text"
+            aria-label="About this project"
+            title="About"
+            :to="{ name: 'about' }"
+          ></v-btn>
           <v-btn
             icon="mdi-format-align-right"
             variant="text"
+            aria-label="Toggle question info"
+            title="Question info"
             @click="toggleRightDrawer"
           ></v-btn>
+        </template>
+      </v-app-bar>
 
-        </v-app-bar>
+      <!-- Left Navigation Drawer -->
+      <v-navigation-drawer v-model="drawer" location="left">
+        <LeftSidebar />
+      </v-navigation-drawer>
 
-        <!-- Left Navigation Drawer -->
-        <v-navigation-drawer v-model="drawer" location="left">
-          <LeftSidebar />
-        </v-navigation-drawer>
+      <!-- Right Navigation Drawer (RightSidebar) -->
+      <v-navigation-drawer v-model="rightDrawer" location="right">
+        <RightSidebar />
+      </v-navigation-drawer>
 
-        <!-- Right Navigation Drawer (RightSidebar) -->
-        <v-navigation-drawer v-model="rightDrawer" location="right">
-          <RightSidebar />
-        </v-navigation-drawer>
+      <v-main class="quiz-main">
+        <MainQuestionWindow />
+      </v-main>
+    </v-layout>
 
-        <v-main>
-          <MainQuestionWindow />
-        </v-main>
-      </v-layout>
+    <v-dialog v-model="filterDialog" max-width="600px" scrollable>
+      <v-card class="rounded-xl">
+        <v-card-title class="headline">Question Filter</v-card-title>
 
-      <v-dialog v-model="filterDialog" max-width="600px">
-        <v-card class="rounded-xl">
-          <v-card-title class="headline">Question Filter</v-card-title>
-
-          <v-card-text>
-            <!-- Chapter Selection -->
-            <div class="mb-4">
-              <v-select
-                multiple
-                variant="outlined"
-                :items="chapterItems"
-                item-title="title"
-                item-value="value"
-                item-disabled="disabled"
-                v-model="selectedChapters"
-                label="Selected Chapters"
-              >
-                <template v-slot:append>
-                  <v-tooltip bottom>
-                    <template v-slot:activator="{ props }">
-                      <v-btn icon="mdi-information-outline" v-bind="props" />
-                    </template>
-                    <span>
-                    1: Introduction to Psychology<br />
-                    2: Psychological Research<br />
-                    3: Biopsychology<br />
-                    4: States of Consciousness<br />
-                    5: Sensation and Perception<br />
-                    6: Learning<br />
-                    7: Thinking and Intelligence<br />
-                    8: Memory<br />
-                    9: Lifespan Development<br />
-                    10: Motivation and Emotion<br />
-                    12: Social Psychology<br />
-                    14: Stress, Lifestyle, and Health<br />
-                  </span>
-
-                  </v-tooltip>
-                </template>
-              </v-select>
-              <v-btn class="my-2 rounded-xl" @click="selectAllChapters"
-                >Select All Chapters</v-btn
-              >
-              <v-btn class="my-2 rounded-xl" @click="deselectAllChapters"
-                >Deselect All Chapters</v-btn
-              >
-
-              <v-divider class=""></v-divider>
-
-            </div>
-
-            <!-- Source Selection -->
-            <div class="mb-4">
-              <v-select
-                multiple
-                variant="outlined"
-                :items="availableSources"
-                v-model="selectedSources"
-                label="Selected Sources"
-              ></v-select>
-              <v-btn class="my-2 rounded-xl" @click="selectAllSources"
-                >Select All Sources</v-btn
-              >
-              <v-btn class="my-2 rounded-xl" @click="deselectAllSources"
-                >Deselect All Sources</v-btn
-              >
-            </div>
-          </v-card-text>
-
-          <v-card-actions class="justify-end">
-            <v-btn @click="filterDialog = false">Cancel</v-btn>
-            <v-btn
-              :disabled="!canApplyFilters"
-              color="primary"
-              @click="applyFilters"
-              >Apply</v-btn
+        <v-card-text>
+          <!-- Chapter Selection -->
+          <div class="mb-4">
+            <v-select
+              multiple
+              chips
+              closable-chips
+              variant="outlined"
+              :items="chapterItems"
+              item-title="title"
+              item-value="value"
+              item-props
+              v-model="selectedChapters"
+              label="Selected Chapters"
+            ></v-select>
+            <v-btn class="my-2 mr-2 rounded-xl" @click="selectAllChapters"
+              >Select All Chapters</v-btn
             >
-          </v-card-actions>
-        </v-card>
-      </v-dialog>
-    </v-sheet>
+            <v-btn class="my-2 rounded-xl" @click="deselectAllChapters"
+              >Deselect All Chapters</v-btn
+            >
 
+            <v-divider></v-divider>
+          </div>
+
+          <!-- Source Selection -->
+          <div class="mb-4">
+            <v-select
+              multiple
+              chips
+              closable-chips
+              variant="outlined"
+              :items="availableSources"
+              v-model="selectedSources"
+              label="Selected Sources"
+            ></v-select>
+            <v-btn class="my-2 mr-2 rounded-xl" @click="selectAllSources"
+              >Select All Sources</v-btn
+            >
+            <v-btn class="my-2 rounded-xl" @click="deselectAllSources"
+              >Deselect All Sources</v-btn
+            >
+          </div>
+
+          <!-- Tells the user up front how big the pool is, so they cannot
+               apply a combination that has no questions at all. -->
+          <v-alert
+            :type="matchingQuestionCount > 0 ? 'info' : 'warning'"
+            variant="tonal"
+            density="compact"
+            class="rounded-lg"
+          >
+            {{
+              matchingQuestionCount > 0
+                ? `${matchingQuestionCount} question${
+                    matchingQuestionCount === 1 ? "" : "s"
+                  } match this selection.`
+                : "No questions match this selection - not every chapter has questions from every source."
+            }}
+          </v-alert>
+        </v-card-text>
+
+        <v-card-actions class="justify-end">
+          <v-btn @click="cancelFilters">Cancel</v-btn>
+          <v-btn :disabled="!canApplyFilters" color="primary" @click="applyFilters"
+            >Apply</v-btn
+          >
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar v-model="showFilterWarning" color="warning" timeout="5000">
+      {{ questionStore.getFilterWarning }}
+    </v-snackbar>
   </v-app>
 </template>
 
@@ -154,138 +205,115 @@ import LandingPopup from "~/components/LandingPopup.vue";
 import InstructionsPopup from "~/components/InstructionsPopup.vue";
 import { useGeneralStore } from "~/stores/generalstore";
 
-useHead({
-  title: "Intro to P&T Quiz",
-  meta: [
-    {
-      name: "description",
-      content:
-        "This is a student-made quiz app for the Intro to Psychology & Technology course at TU/e Eindhoven",
-    },
-  ],
-  link: [
-    { rel: "icon", type: "image/png", href: "favicon.ico" },
-  ],
-});
+const THEME_STORAGE_KEY = "ipt_quiz_theme";
 
 const display = useDisplay();
-
 const mdAndUp = computed(() => display.mdAndUp.value);
 
-const drawer = ref(true);
-const rightDrawer = ref(true);
-
-const dashboardUrl = "https://ipt-quiz.streamlit.app/";
+const drawer = ref(false);
+const rightDrawer = ref(false);
 
 const theme = useTheme();
 const questionStore = useQuestionStore();
 const generalStore = useGeneralStore();
 
 const filterDialog = ref(false);
+const isDark = computed(() => theme.global.name.value === "dark");
+
+const showFilterWarning = computed({
+  get: () => !!questionStore.getFilterWarning,
+  set: (value: boolean) => {
+    if (!value) (questionStore as any).filterWarning = null;
+  },
+});
 
 const availableChapters = computed<number[]>(() =>
   [...(questionStore.getAllChapters as number[])].sort((a, b) => a - b)
 );
-const availableSources = computed<string[]>(() =>
-  [...(questionStore.getAllSources as string[])]
-);
+const availableSources = computed<string[]>(() => [
+  ...(questionStore.getAllSources as string[]),
+]);
 
 const selectedChapters = ref<number[]>([]);
 const selectedSources = ref<string[]>([]);
 
-const banlistChapters = computed<number[]>(() => (questionStore as any).BANLIST_CHAPTERS ?? []);
-const chapterItems = computed(() => {
-  const toLabel = (id: number) => {
+const chapterItems = computed(() =>
+  availableChapters.value.map((id) => {
     const name = questionStore.getChapterById(id);
-    return name ? `Chapter ${id}: ${name}` : `Chapter ${id}`;
-  };
-  const allowed = (availableChapters.value || []).map((id) => ({
-    title: toLabel(id),
-    value: id,
-    disabled: false,
-  }));
-  const banned = (banlistChapters.value || [])
-    .filter((id: number) => !availableChapters.value.includes(id))
-    .map((id: number) => ({
-      title: `${toLabel(id)} (disabled)`,
-      value: id,
-      disabled: true,
-    }));
-  return [...allowed, ...banned].sort((a, b) => a.value - b.value);
-});
-
-const selectAllTUEChapters = () => {
-  const banned = new Set(banlistChapters.value);
-  selectedChapters.value = availableChapters.value.filter((id) => !banned.has(id));
-};
-
-onMounted(() => {
-  document.body.style.overflow = 'hidden';
-});
-
-onBeforeUnmount(() => {
-  const banned = new Set(banlistChapters.value);
-  selectedChapters.value = [...availableChapters.value]
-    .filter((id) => !banned.has(id))
-    .sort((a, b) => a - b);
-});
-
-watch(
-  [availableChapters, availableSources],
-  ([newChapters, newSources]) => {
-    if (newChapters && newChapters.length > 0) {
-      selectAllTUEChapters();
-    }
-    if (newSources && newSources.length > 0) {
-      selectedSources.value = [...newSources];
-    }
-  },
-  { immediate: true }
+    return { title: name ? `Chapter ${id}: ${name}` : `Chapter ${id}`, value: id };
+  })
 );
 
-// Safety: ensure no banned chapters can end up selected
-watch(
-  selectedChapters,
-  (newVal) => {
-    const banned = new Set(banlistChapters.value);
-    const sanitized = (newVal || []).filter((id) => !banned.has(id));
-    if (sanitized.length !== (newVal || []).length) {
-      selectedChapters.value = sanitized;
-    }
-  },
-  { deep: true }
+// Live count for the dialog, mirroring the store's own filtering rules.
+const matchingQuestionCount = computed(
+  () =>
+    (questionStore as any).filteredQuestions(
+      selectedChapters.value,
+      selectedSources.value
+    ).length
 );
 
-watch(mdAndUp, (newVal) => {
-  if (!newVal) {
+const canApplyFilters = computed(
+  () =>
+    selectedChapters.value.length > 0 &&
+    selectedSources.value.length > 0 &&
+    matchingQuestionCount.value > 0
+);
+
+// Mirror whatever the store settled on (stored filters, or the defaults) into
+// the dialog. Previously this clobbered the user's saved selection.
+watch(
+  () => [questionStore.getSelectedChapters, questionStore.getSelectedSources],
+  ([chapters, sources]) => {
+    selectedChapters.value = [...(chapters as number[])].sort((a, b) => a - b);
+    selectedSources.value = [...(sources as string[])];
+  },
+  { immediate: true, deep: true }
+);
+
+// Only force the drawers shut when dropping to a narrow viewport, where they
+// would cover the question. Growing back to desktop leaves whatever the user
+// chose alone.
+watch(mdAndUp, (isWide, wasWide) => {
+  if (!isWide) {
     drawer.value = false;
     rightDrawer.value = false;
-  } else {
+  } else if (wasWide === false) {
     drawer.value = true;
     rightDrawer.value = true;
   }
 });
 
 function toggleTheme() {
-  theme.global.name.value =
-    theme.global.name.value === "light" ? "dark" : "light";
+  const next = isDark.value ? "light" : "dark";
+  theme.global.name.value = next;
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, next);
+  } catch {
+    /* private browsing - the theme just will not persist */
+  }
 }
 
 function toggleRightDrawer() {
   rightDrawer.value = !rightDrawer.value;
 }
 
-function openDashboardInNewTab() {
-  window.open(dashboardUrl, '_blank', 'noopener,noreferrer')
+function cancelFilters() {
+  selectedChapters.value = [
+    ...(questionStore.getSelectedChapters as number[]),
+  ].sort((a, b) => a - b);
+  selectedSources.value = [...(questionStore.getSelectedSources as string[])];
+  filterDialog.value = false;
 }
 
 async function applyFilters() {
   (questionStore as any).selected_chapters = selectedChapters.value;
   (questionStore as any).selected_sources = selectedSources.value;
-  // save to local storage
-  questionStore.saveSelectedFiltersToLocalStorage();
-  await questionStore.reSetUpAfterFiltersChange();
-  filterDialog.value = false;
+  const ok = await questionStore.reSetUpAfterFiltersChange();
+  if (ok) {
+    questionStore.saveSelectedFiltersToLocalStorage();
+    filterDialog.value = false;
+  }
 }
 
 const selectAllChapters = () => {
@@ -296,7 +324,6 @@ const deselectAllChapters = () => {
   selectedChapters.value = [];
 };
 
-
 const selectAllSources = () => {
   selectedSources.value = [...availableSources.value];
 };
@@ -305,44 +332,64 @@ const deselectAllSources = () => {
   selectedSources.value = [];
 };
 
-const canApplyFilters = computed(() => {
-  return selectedChapters.value.length > 0 && selectedSources.value.length > 0;
-});
-
 const openPopup = () => {
   generalStore.toggleInstructionsPopup();
 };
 
-onMounted(() => {
-  // const selectedChaptersLocal = localStorage.getItem("selected_chapters_ipt");
-  const selectedSourcesLocal = localStorage.getItem("selected_sources_ipt");
-  // if (selectedChaptersLocal) {
-  //   selectedChapters.value = JSON.parse(selectedChaptersLocal);
-  // }
-  if (selectedSourcesLocal) {
-    selectedSources.value = JSON.parse(selectedSourcesLocal);
-  }
-  const currentHour = new Date().getHours();
-  theme.global.name.value =
-    currentHour >= 19 || currentHour < 6 ? "dark" : "light";
+onMounted(async () => {
+  drawer.value = mdAndUp.value;
+  rightDrawer.value = mdAndUp.value;
 
-  // set the drawers to false on mobile
-  if (!mdAndUp.value) {
-    drawer.value = false;
-    rightDrawer.value = false;
+  // Respect an explicit choice; otherwise fall back to the system preference,
+  // then to the time of day. It used to reset to the clock on every reload,
+  // undoing whatever the user had picked.
+  let stored: string | null = null;
+  try {
+    stored = localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    /* ignore */
   }
+  if (stored === "light" || stored === "dark") {
+    theme.global.name.value = stored;
+  } else if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
+    theme.global.name.value = "dark";
+  } else {
+    const currentHour = new Date().getHours();
+    theme.global.name.value =
+      currentHour >= 19 || currentHour < 6 ? "dark" : "light";
+  }
+
+  // The question set is loaded by app.vue on every route; serving the first
+  // question happens here, so /about and /questions do not record a view for a
+  // question nobody saw.
+  await questionStore.startQuiz();
 });
 
-
+onBeforeUnmount(() => {
+  filterDialog.value = false;
+});
 </script>
 
 <style scoped>
-.v-layout {
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+/* 100dvh rather than 100vh so mobile browser chrome does not push the
+   navigation buttons below the fold. */
+.quiz-layout {
+  min-height: 100dvh;
 }
 
+/* v-toolbar-title reserves a wide flex basis and then ellipsises; on a phone
+   that turned "P&T Quiz" into "P&T…". Let it size to its own text instead. */
+.app_title {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 599px) {
+  .app_title {
+    font-size: 1.05rem;
+  }
+}
 
 .headline {
   font-size: 1.5rem;
@@ -351,37 +398,12 @@ onMounted(() => {
   padding-bottom: 10px;
 }
 
-.v-card-text {
-  padding-bottom: 0;
-}
-
 .mb-4 {
   margin-bottom: 16px;
-}
-
-.mx-2 {
-  margin-left: 8px;
-  margin-right: 8px;
-}
-
-.my-3 {
-  margin-top: 12px;
-  margin-bottom: 12px;
 }
 
 .justify-end {
   display: flex;
   justify-content: flex-end;
-}
-
-.bottom-right {
-  position: fixed;
-  bottom: 10px;
-  right: 10px;
-}
-
-.no-blue-link {
-  color: inherit;
-  text-decoration: none;
 }
 </style>

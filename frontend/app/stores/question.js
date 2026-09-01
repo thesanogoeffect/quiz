@@ -1,4 +1,28 @@
 import { useQuestionStatsStore } from "#imports";
+
+const STORAGE_KEYS = {
+  chapters: "selected_chapters_ipt",
+  sources: "selected_sources_ipt",
+};
+
+// Options like "None of the above" only make sense in last position, but the
+// answers are shuffled. Detect them so they can be pinned to the end.
+const POSITIONAL_OPTION =
+  /\b(all|none|neither|both)\b[^.]*\b(above|these|options|answers|statements|listed)\b|\bof the above\b|^\s*(both|neither) (answers?|statements?) (are|is)\b/i;
+
+// Some imported questions still carry the original exam's letter prefix
+// ("a. zygote, embryo, fetus"), which collides with the A/B/C/D labels the UI
+// draws. Only strip when every option carries one, so "B. F. Skinner" survives.
+const LETTER_PREFIX = /^\s*[a-dA-D]\s*[.)]\s+/;
+
+function normaliseOptions(rawOptions) {
+  const trimmed = rawOptions.map((o) => String(o ?? "").trim());
+  if (trimmed.every((o) => LETTER_PREFIX.test(o))) {
+    return trimmed.map((o) => o.replace(LETTER_PREFIX, "").trim());
+  }
+  return trimmed;
+}
+
 export const useQuestionStore = defineStore("question", {
   state: () => ({
     total_shown_questions: 0,
@@ -13,6 +37,8 @@ export const useQuestionStore = defineStore("question", {
     alreadySeenQuestions: {}, // store the question ids that have already been seen by the user
 
     skipsRemaining: 3, // number of skips remaining for the user
+    correctSinceLastSkip: 0, // progress towards earning the next skip back
+    nextSkipThreshold: 3, // how many correct answers that takes; re-rolled on each award
 
     selected_chapters: [],
     all_chapters: [],
@@ -20,13 +46,16 @@ export const useQuestionStore = defineStore("question", {
     all_sources: [],
     processingAnswer: false,
 
-    DEFAULT_CHAPTERS: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14], // all chapters available at the start
+    loadError: null, // non-null when the question set could not be loaded at all
+    filterWarning: null, // set when a filter combination matched nothing
+
+    DEFAULT_CHAPTERS: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14], // all chapters available at the start
     BANLIST_CHAPTERS: [11, 13, 16], // chapters to exclude
     answerHistory: [], // Store the full question objects with guesses for easier UI display
     reviewMode: false,
     currentReviewPosition: 0, //
     currentlyReviewedQuestion: null,
-    BOOK_CHAPTER_NAMES:{
+    BOOK_CHAPTER_NAMES: {
       1: "Introduction to Psychology",
       2: "Psychological Research",
       3: "Biopsychology",
@@ -40,10 +69,11 @@ export const useQuestionStore = defineStore("question", {
       12: "Social Psychology",
       14: "Stress, Lifestyle, and Health",
     },
-    
   }),
   getters: {
     getProcessingAnswer: (state) => state.processingAnswer,
+    getLoadError: (state) => state.loadError,
+    getFilterWarning: (state) => state.filterWarning,
     filteredQuestions:
       (state) =>
       (chapter_ids = [], sources = [], question_ids = []) => {
@@ -83,14 +113,14 @@ export const useQuestionStore = defineStore("question", {
     randomQuestions:
       (state) =>
       (chapter_ids = [], sources = [], question_ids = []) => {
-        let filteredQuestions = state.filteredQuestions(
+        const filteredQuestions = state.filteredQuestions(
           chapter_ids,
           sources,
           question_ids
         );
-    
-        // Shuffle using Fisher-Yates
-        return state.shuffleArray(filteredQuestions);
+
+        // Shuffle a copy - all_questions must keep its own ordering
+        return state.shuffleArray([...filteredQuestions]);
       },
 
     getReviewMode: (state) => state.reviewMode,
@@ -128,9 +158,7 @@ export const useQuestionStore = defineStore("question", {
 
     getFilteredByChapterAndSource: (state) => {
       return state.all_questions
-        .filter(
-          (q) => !state.BANLIST_CHAPTERS.includes(q.chapter_id)
-        )
+        .filter((q) => !state.BANLIST_CHAPTERS.includes(q.chapter_id))
         .filter(
           (question) =>
             state.selected_chapters.includes(question.chapter_id) &&
@@ -159,8 +187,15 @@ export const useQuestionStore = defineStore("question", {
     resetAlreadySeenQuestions() {
       this.alreadySeenQuestions = {};
     },
-    incrementTotalShownQuestions() {
-      this.total_shown_questions++;
+    // Counts a question towards "Total Shown" at most once per pass through the
+    // queue - callers used to increment blindly, which double-counted the first
+    // question of every session and after every filter change.
+    markQuestionShown(id) {
+      if (id === undefined || id === null) return;
+      if (!this.alreadySeenQuestions[id]) {
+        this.alreadySeenQuestions[id] = true;
+        this.total_shown_questions++;
+      }
     },
     incrementTotalAnsweredQuestions() {
       this.total_answered_questions++;
@@ -172,49 +207,73 @@ export const useQuestionStore = defineStore("question", {
       this.total_skipped_questions++;
     },
     saveSelectedFiltersToLocalStorage() {
-      localStorage.setItem(
-        "selected_chapters_ipt",
-        JSON.stringify(this.selected_chapters)
-      );
-      localStorage.setItem(
-        "selected_sources_ipt",
-        JSON.stringify(this.selected_sources)
-      );
+      try {
+        localStorage.setItem(
+          STORAGE_KEYS.chapters,
+          JSON.stringify(this.selected_chapters)
+        );
+        localStorage.setItem(
+          STORAGE_KEYS.sources,
+          JSON.stringify(this.selected_sources)
+        );
+      } catch (error) {
+        console.warn("Could not persist filters:", error);
+      }
     },
     loadSelectedFiltersFromLocalStorage() {
-      // disabling this logic for now
-      // const selectedChapters = localStorage.getItem("selected_chapters_ipt");
-      const selectedSources = localStorage.getItem("selected_sources_ipt");
+      let storedChapters = null;
+      let storedSources = null;
+      try {
+        storedChapters = JSON.parse(
+          localStorage.getItem(STORAGE_KEYS.chapters) || "null"
+        );
+        storedSources = JSON.parse(
+          localStorage.getItem(STORAGE_KEYS.sources) || "null"
+        );
+      } catch (error) {
+        console.warn("Ignoring unreadable stored filters:", error);
+      }
 
-      // if (selectedChapters) {
-      //   this.selected_chapters = JSON.parse(selectedChapters);
-      // } else {
-      //   this.selected_chapters = this.sanitizeChapterIds(this.DEFAULT_CHAPTERS);
-      // }
-      if (selectedSources) {
-        this.selected_sources = JSON.parse(selectedSources);
-      } else {
-        this.selected_sources = this.all_sources;
+      const knownChapters = new Set(this.all_chapters);
+      const knownSources = new Set(this.all_sources);
+
+      // Only keep stored values that still exist in the current question set,
+      // otherwise a filter saved last semester can leave the quiz with nothing
+      // to show.
+      const chapters = Array.isArray(storedChapters)
+        ? this.sanitizeChapterIds(storedChapters).filter((id) =>
+            knownChapters.has(id)
+          )
+        : [];
+      const sources = Array.isArray(storedSources)
+        ? storedSources.filter((s) => knownSources.has(s))
+        : [];
+
+      this.selected_chapters = chapters.length
+        ? chapters
+        : this.sanitizeChapterIds(this.DEFAULT_CHAPTERS).filter((id) =>
+            knownChapters.has(id)
+          );
+      this.selected_sources = sources.length ? sources : [...this.all_sources];
+
+      if (!this.selected_chapters.length) {
+        this.selected_chapters = [...this.all_chapters];
       }
     },
     async toggleReviewMode() {
       const questionStatsStore = useQuestionStatsStore();
-      await questionStatsStore.incrementSpecificQuestionFields(
-        this.reviewMode
-          ? this.currentlyReviewedQuestion.id
-          : this.currentQuestion.id
-      );
+      const flushId = this.reviewMode
+        ? this.currentlyReviewedQuestion?.id
+        : this.currentQuestion?.id;
+      if (flushId !== undefined && flushId !== null) {
+        await questionStatsStore.incrementSpecificQuestionFields(flushId);
+      }
       questionStatsStore.saveInteractionsCacheToLocalStorage();
       this.reviewMode = !this.reviewMode;
-      if (!this.reviewMode) {
+      if (!this.reviewMode && this.currentQuestion) {
         // if we just exited review mode, the user has seen the question
-        questionStatsStore.current_questions_increment_fields[
-          this.currentQuestion.id
-        ]["times_asked"] = true;
-        if (!this.alreadySeenQuestions[this.currentQuestion.id]) {
-          this.incrementTotalShownQuestions();
-          this.alreadySeenQuestions[this.currentQuestion.id] = true;
-        }
+        questionStatsStore.markPending(this.currentQuestion.id, "times_asked");
+        this.markQuestionShown(this.currentQuestion.id);
       }
       if (this.getAnswerHistoryLength > 0) {
         this.currentlyReviewedQuestion = this.answerHistory.at(-1);
@@ -234,46 +293,53 @@ export const useQuestionStore = defineStore("question", {
       const questionStatsStore = useQuestionStatsStore();
       if (this.currentReviewPosition === 0) {
         // cannot go back,
-      } else {
-        this.decrementCurrentReviewPosition();
+        return;
+      }
+      this.decrementCurrentReviewPosition();
+      if (this.currentlyReviewedQuestion) {
         await questionStatsStore.incrementSpecificQuestionFields(
           this.currentlyReviewedQuestion.id
         );
-        questionStatsStore.saveInteractionsCacheToLocalStorage();
-        this.currentlyReviewedQuestion =
-          this.answerHistory[this.currentReviewPosition];
       }
+      questionStatsStore.saveInteractionsCacheToLocalStorage();
+      this.currentlyReviewedQuestion =
+        this.answerHistory[this.currentReviewPosition];
     },
     async nextReviewedQuestion() {
       const questionStatsStore = useQuestionStatsStore();
-      if (this.currentReviewPosition == this.getAnswerHistoryLength - 1) {
+      if (this.currentReviewPosition >= this.getAnswerHistoryLength - 1) {
         // cannot go forward
-      } else {
-        this.incrementCurrentReviewPosition();
+        return;
+      }
+      this.incrementCurrentReviewPosition();
+      if (this.currentlyReviewedQuestion) {
         await questionStatsStore.incrementSpecificQuestionFields(
           this.currentlyReviewedQuestion.id
         );
-        questionStatsStore.saveInteractionsCacheToLocalStorage();
-        this.currentlyReviewedQuestion =
-          this.answerHistory[this.currentReviewPosition];
-        // also increment to Firestore
       }
+      questionStatsStore.saveInteractionsCacheToLocalStorage();
+      this.currentlyReviewedQuestion =
+        this.answerHistory[this.currentReviewPosition];
     },
     async loadQuestionsFromJSON() {
-      try {
-        // const response = await $fetch(`/l3.json?timestamp=${Date.now()}`); // to avoid caching,
-        //  but we want caching now because we won't really maintain the project now
-        const response = await $fetch('/l3.json'); // to avoid caching,
-        this.all_questions = response;
-        console.log("All Questions loaded from JSON:", this.all_questions.values());
-      } catch (error) {
-        console.error(error.message);
+      // Cache-bust on every deploy rather than every page view: the file is
+      // 1.2 MB and only changes when the question set is regenerated.
+      const buildId = useRuntimeConfig().app.buildId;
+      const response = await $fetch(`/l3.json?v=${buildId}`);
+      if (!Array.isArray(response) || response.length === 0) {
+        throw new Error("l3.json did not contain any questions");
       }
+      // is_disabled is authored as a string in the export, so "0" must not
+      // count as disabled - compare against the truthy values explicitly.
+      this.all_questions = response.filter((q) => {
+        const flag = String(q?.is_disabled ?? "").trim().toLowerCase();
+        return flag !== "1" && flag !== "true" && flag !== "yes";
+      });
     },
 
-    async fill_filters_from_questions() {
-      let chapters = new Set();
-      let sources = new Set();
+    fill_filters_from_questions() {
+      const chapters = new Set();
+      const sources = new Set();
       this.all_questions.forEach((question) => {
         if (this.BANLIST_CHAPTERS.includes(question.chapter_id)) {
           return; // skip this iteration
@@ -281,64 +347,88 @@ export const useQuestionStore = defineStore("question", {
         chapters.add(question.chapter_id);
         sources.add(question.source);
       });
-      this.all_chapters = Array.from(chapters);
-      this.all_sources = Array.from(sources);
+      this.all_chapters = Array.from(chapters).sort((a, b) => a - b);
+      this.all_sources = Array.from(sources).sort();
     },
+    // Loads the question set and the saved filters. Safe to call from any
+    // route - it deliberately does NOT pick a question, because doing that on
+    // /about or /questions would record a "times_asked" for a question the
+    // visitor never saw.
     async setUp() {
-      console.log("calling setUp");
-      await this.loadQuestionsFromJSON();
-      const questionStatsStore = useQuestionStatsStore();
-
-      // Check if all_questions is loaded
-      // console.log("All Questions:", this.all_questions);
-
-      await this.fill_filters_from_questions();
-
-      // Load selected filters from localStorage
-      this.loadSelectedFiltersFromLocalStorage();
-
-      // Ensure selected_chapters is initialized and sanitized
-      if (!this.selected_chapters || this.selected_chapters.length === 0) {
-        // Default to all available chapters excluding banned ones
-        this.selected_chapters = this.sanitizeChapterIds(
-          this.DEFAULT_CHAPTERS.length > 0 ? this.DEFAULT_CHAPTERS : this.all_chapters
-        );
-      } else {
-        this.selected_chapters = this.sanitizeChapterIds(this.selected_chapters);
+      if (this.all_questions.length > 0) return; // already initialised
+      this.loadError = null;
+      try {
+        await this.loadQuestionsFromJSON();
+      } catch (error) {
+        console.error("Could not load the question set:", error);
+        this.loadError =
+          "The question set could not be loaded. Check your connection and try again.";
+        return;
       }
 
-      // Generate the initial queue
-      await this.generateQueue(this.selected_chapters, this.selected_sources);
-      this.incrementTotalShownQuestions();
-      this.currentQuestion = await this.getFromQueue(true);
-      questionStatsStore.current_questions_increment_fields[
-        this.currentQuestion.id
-      ]["times_asked"] = true;
-      // here, pop withou calling .getFromQueue
+      this.fill_filters_from_questions();
+      this.loadSelectedFiltersFromLocalStorage();
     },
+    // Serves the first question. Called from the quiz page only.
+    async startQuiz() {
+      if (this.currentQuestion || this.loadError) return;
+      if (this.all_questions.length === 0) await this.setUp();
+      if (this.loadError) return;
+
+      await this.generateQueue(this.selected_chapters, this.selected_sources);
+      const first = await this.getFromQueue();
+      if (!first) {
+        this.loadError =
+          "No questions are available right now. Try resetting the filters.";
+        return;
+      }
+      this.currentQuestion = first;
+      this.markQuestionShown(first.id);
+      useQuestionStatsStore().markPending(first.id, "times_asked");
+    },
+    // Returns true when the new filters produced a usable queue. On failure the
+    // previous question stays on screen so the app never lands on a dead state.
     async reSetUpAfterFiltersChange() {
       const questionStatsStore = useQuestionStatsStore();
-      // first, flush to Firestore
-      await questionStatsStore.incrementSpecificQuestionFields(
-        this.reviewMode
-          ? this.currentlyReviewedQuestion.id
-          : this.currentQuestion.id
-      );
+      const flushId = this.reviewMode
+        ? this.currentlyReviewedQuestion?.id
+        : this.currentQuestion?.id;
+      if (flushId !== undefined && flushId !== null) {
+        await questionStatsStore.incrementSpecificQuestionFields(flushId);
+      }
       questionStatsStore.saveInteractionsCacheToLocalStorage();
-      console.log("Re-setting up after filters change");
-      // Sanitize any incoming selected chapters against the banlist
+
       this.selected_chapters = this.sanitizeChapterIds(this.selected_chapters);
-      console.log("Selected Chapters:", this.selected_chapters);
-      console.log("Selected Sources:", this.selected_sources);
-      // Generate the initial queue
+
+      const candidates = this.filteredQuestions(
+        this.selected_chapters,
+        this.selected_sources
+      );
+      if (candidates.length === 0) {
+        // Not every chapter has questions from every source, so this is easy to
+        // hit from the filter dialog. Bail out before touching the queue.
+        this.filterWarning =
+          "No questions match that combination of chapters and sources.";
+        return false;
+      }
+
       await this.generateQueue(this.selected_chapters, this.selected_sources);
-      // here, call .getFromQueue with blockAnalytics set to true
-      this.currentQuestion = await this.getFromQueue(true);
-      this.incrementTotalShownQuestions();
-      questionStatsStore.current_questions_increment_fields[
-        this.currentQuestion.id
-      ]["times_asked"] = true;
+      const next = await this.getFromQueue();
+      if (!next) {
+        this.filterWarning =
+          "No questions match that combination of chapters and sources.";
+        return false;
+      }
+
+      this.filterWarning = null;
+      // A previous "no questions available" state must not outlive the fix.
+      this.loadError = null;
+      this.resetAlreadySeenQuestions();
+      this.currentQuestion = next;
+      this.markQuestionShown(next.id);
+      questionStatsStore.markPending(next.id, "times_asked");
       this.reviewMode = false;
+      return true;
     },
     shuffleArray(array) {
       for (let i = array.length - 1; i > 0; i--) {
@@ -355,26 +445,33 @@ export const useQuestionStore = defineStore("question", {
         sources,
         question_ids
       ).map((question) => {
-        // Create the answers array
-        const answers = [
+        const options = normaliseOptions([
           question.correct_answer,
           question.distractor_1,
           question.distractor_2,
           question.distractor_3,
-        ];
+        ]);
+        const correctAnswer = options[0];
 
-        // Shuffle the answers array using Fisher-Yates
-        const shuffledAnswers = this.shuffleArray(answers);
+        const shuffledAnswers = this.shuffleArray([...options]);
+
+        // "None of the above" style options refer to the options printed above
+        // them, so they have to stay last no matter how the rest shuffled.
+        const pinned = shuffledAnswers.filter((a) => POSITIONAL_OPTION.test(a));
+        if (pinned.length > 0 && pinned.length < shuffledAnswers.length) {
+          const rest = shuffledAnswers.filter(
+            (a) => !POSITIONAL_OPTION.test(a)
+          );
+          shuffledAnswers.splice(0, shuffledAnswers.length, ...rest, ...pinned);
+        }
 
         // Find the index of the correct answer in the shuffled array
-        const correctAnswerIndex = shuffledAnswers.indexOf(
-          question.correct_answer
-        );
+        const correctAnswerIndex = shuffledAnswers.indexOf(correctAnswer);
 
         // Return the formatted question object
         return {
           id: question.id,
-          question_title: question.question_title,
+          question_title: String(question.question_title ?? "").trim(),
           answers: shuffledAnswers, // Shuffled answers
           chapter_id: question.chapter_id,
           correct_answer_index: correctAnswerIndex, // Index of the correct answer
@@ -386,7 +483,7 @@ export const useQuestionStore = defineStore("question", {
         };
       });
     },
-    async getFromQueue(blockAnalytics = false) {
+    async getFromQueue() {
       const questionStatsStore = useQuestionStatsStore();
 
       if (this.questionQueue.length === 0) {
@@ -397,92 +494,103 @@ export const useQuestionStore = defineStore("question", {
         await this.generateQueue(this.selected_chapters, this.selected_sources);
 
         if (this.questionQueue.length === 0) {
-          console.error("No questions available after queue refill.");
-          this.currentQuestion = null; // Set currentQuestion to null if no questions are available
+          console.warn("No questions available after queue refill.");
           return null;
         }
       }
       // Pop the first question from the queue and set it as the current question
       const nextQuestion = this.questionQueue.shift();
-      await questionStatsStore.fetchQuestionStats(String(nextQuestion.id)); // TODO change later so that more than one question can be fetched at a time this.currentQuestion = nextQuestion;
-      await questionStatsStore.preBuildIncrementFields([nextQuestion.id]);
+      // Community stats are a nice-to-have; a Firestore outage must not stop
+      // the quiz, so fetchQuestionStats never rejects.
+      await questionStatsStore.fetchQuestionStats(nextQuestion.id);
       return nextQuestion;
     },
     async skipQuestion() {
       const questionStatsStore = useQuestionStatsStore();
+      if (this.processingAnswer || this.reviewMode) return;
       if (!this.currentQuestion) {
-        console.error("No current question to skip.");
+        console.warn("No current question to skip.");
         return;
       }
-
       if (this.skipsRemaining <= 0) {
-        console.error("No skips remaining.");
         return;
       }
 
-      this.skipsRemaining -= 1;
+      this.processingAnswer = true;
+      try {
+        this.skipsRemaining -= 1;
 
-      // Mark the current question as skipped
-      this.currentQuestion.skipped = true;
-      // Add the current question to answerHistory
-      this.answerHistory.push(this.currentQuestion);
+        // Mark the current question as skipped
+        this.currentQuestion.skipped = true;
+        this.currentQuestion.guessed_index = null;
+        // Add the current question to answerHistory
+        this.answerHistory.push(this.currentQuestion);
 
-      questionStatsStore.current_questions_increment_fields[
-        this.currentQuestion.id
-      ]["times_skipped"] = true;
-      // Pop the next question and set it as the current question
-      await this.toggleReviewMode();
-      this.currentQuestion = await this.getFromQueue();
-      // Increment counters
-      this.incrementTotalSkippedQuestions();
+        questionStatsStore.markPending(this.currentQuestion.id, "times_skipped");
+        // Pop the next question and set it as the current question
+        await this.toggleReviewMode();
+        const next = await this.getFromQueue();
+        if (next) this.currentQuestion = next;
+        // Increment counters
+        this.incrementTotalSkippedQuestions();
+      } finally {
+        this.processingAnswer = false;
+      }
     },
     async answerCurrentQuestion(guessed_index) {
-      this.processingAnswer = true;
       const questionStatsStore = useQuestionStatsStore();
+      if (this.processingAnswer || this.reviewMode) return;
       if (!this.currentQuestion) {
-        console.error("No current question to answer.");
+        console.warn("No current question to answer.");
         return;
       }
 
-      this.currentQuestion.guessed_index = guessed_index;
-      this.currentQuestion.skipped = false;
-      const isCorrect =
-        guessed_index === this.currentQuestion.correct_answer_index;
+      this.processingAnswer = true;
+      try {
+        this.currentQuestion.guessed_index = guessed_index;
+        this.currentQuestion.skipped = false;
+        const isCorrect =
+          guessed_index === this.currentQuestion.correct_answer_index;
 
-      if (isCorrect) {
-        questionStatsStore.current_questions_increment_fields[
-          this.currentQuestion.id
-        ]["times_answered_correct"] = true;
-      }
-      questionStatsStore.current_questions_increment_fields[
-        this.currentQuestion.id
-      ]["times_answered"] = true;
+        if (isCorrect) {
+          questionStatsStore.markPending(
+            this.currentQuestion.id,
+            "times_answered_correct"
+          );
+        }
+        questionStatsStore.markPending(
+          this.currentQuestion.id,
+          "times_answered"
+        );
 
-      // Add the current question to answerHistory
-      this.answerHistory.push(this.currentQuestion);
+        // Add the current question to answerHistory
+        this.answerHistory.push(this.currentQuestion);
 
-      // Increment counters
-      this.incrementTotalAnsweredQuestions();
-      if (isCorrect) {
-        this.incrementTotalCorrectAnswers();
+        // Increment counters
+        this.incrementTotalAnsweredQuestions();
+        if (isCorrect) {
+          this.incrementTotalCorrectAnswers();
 
-        // Generate a random integer between 2 and 5
-        const randomInt = Math.floor(Math.random() * (5 - 2 + 1)) + 2;
-
-        // Add a skip based on the randomly generated number of correct answers
-        if (this.total_correct_answers % randomInt === 0) {
-          if (this.skipsRemaining < 3) {
-            this.skipsRemaining += 1;
+          // Earn a skip back after a run of correct answers. The length of the
+          // run is re-rolled each time so it stays a little unpredictable.
+          this.correctSinceLastSkip += 1;
+          if (this.correctSinceLastSkip >= this.nextSkipThreshold) {
+            this.correctSinceLastSkip = 0;
+            this.nextSkipThreshold = 2 + Math.floor(Math.random() * 4); // 2..5
+            if (this.skipsRemaining < 3) {
+              this.skipsRemaining += 1;
+            }
           }
         }
+
+        await this.toggleReviewMode();
+
+        // Pop the next question and set it as the current question
+        const next = await this.getFromQueue();
+        if (next) this.currentQuestion = next;
+      } finally {
+        this.processingAnswer = false;
       }
-
-      // console.log("answerHistory:", this.answerHistory);
-      await this.toggleReviewMode();
-
-      // Pop the next question and set it as the current question
-      this.currentQuestion = await this.getFromQueue();
-      this.processingAnswer = false;
     },
   },
 });
