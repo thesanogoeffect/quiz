@@ -19,8 +19,8 @@ project — I am not responsible for any mistakes or inaccuracies.
 | `scripts/` | The data pipeline: Google Sheets → SQLite (`data/l2.db`) → LLM enrichment → `l3.json` |
 | `dashboard/` | Streamlit dashboards for browsing/administering questions |
 | `data/` | `l2.db` (working database) plus the generated `l3.csv` / `l3.json` |
-| `deploy/root/` | Files copied to the site root by CI (redirects, robots.txt, sitemap) |
-| `.github/workflows/deploy.yml` | Builds and publishes to GitHub Pages |
+| `deploy/root/` | Files copied to the site root by the build (redirects, robots.txt, sitemap) |
+| `scripts/build_site.sh` | Builds and assembles `dist/` — what Cloudflare Pages runs |
 
 ## Running the app locally
 
@@ -32,65 +32,72 @@ npm run dev          # http://localhost:3000/ipt/
 
 The dev server serves the app under the `/ipt/` base path, same as production.
 
-To reproduce a production build:
+To reproduce exactly what Cloudflare builds:
 
 ```bash
-cd frontend
-npx nuxt generate --preset github_pages
-npx serve .output/public     # note: this serves at / , not /ipt/
+bash scripts/build_site.sh
+npx serve dist               # then open http://localhost:3000/ipt/
 ```
 
 ## How it is deployed
 
-`.github/workflows/deploy.yml` runs on every push to `main` that touches `frontend/` or `deploy/`:
+**Cloudflare Pages**, building straight from this repository. Cloudflare serves private repos on
+the free plan (GitHub Pages does not), gives unlimited bandwidth and 500 builds/month, and since
+the DNS for `jakubwerner.com` already lives in Cloudflare the custom domain needs no manual record.
 
-1. `npm ci` + `npx nuxt generate --preset github_pages` → static output in `frontend/.output/public`
-2. that output is copied into `dist/ipt/` (the app's `app.baseURL` is `/ipt/`, so it *must* live
-   under that directory), and `deploy/root/` is copied to `dist/`
-3. a sanity check asserts the key files exist and `l3.json` still parses
-4. the artifact is published to GitHub Pages
+Everything about the build lives in `scripts/build_site.sh`, so it cannot drift between Cloudflare
+and your laptop:
 
-`deploy/root/` provides:
+```bash
+bash scripts/build_site.sh     # -> ./dist
+npx serve dist                 # then open http://localhost:3000/ipt/
+```
 
-- `index.html` / `404.html` — redirect the site root and unknown paths to `/ipt/`. The 404 maps
-  known routes across (`/itp/questions` → `/ipt/questions/`) and sends anything else to `/ipt/`,
-  which is a real file, so it cannot loop.
-- `itp/index.html` — `/itp/` is a common typo for `/ipt/`; redirect instead of 404
-- `robots.txt` and `sitemap.xml` — these only work at the origin root, not under `/ipt/`
+It builds the Nuxt app, assembles `dist/`, and then refuses to finish if anything is wrong — a
+missing route, assets that do not match the base path, a page with no `<title>`, fewer than 500
+questions, an un-hashed student number, or malformed explanation markup.
 
-There is deliberately **no `CNAME` file**: GitHub ignores one when the site is published from a
-custom Actions workflow ("any existing `CNAME` file is ignored and is not required" —
-[docs](https://docs.github.com/en/pages/configuring-a-custom-domain-for-your-github-pages-site/managing-a-custom-domain-for-your-github-pages-site)).
-The domain is set in repository settings instead.
+### The layout it produces
 
-### First deploy — order matters
+```
+dist/
+  index.html      redirect to /ipt/
+  404.html        maps known routes into /ipt/, everything else to /ipt/
+  itp/index.html  /itp/ is a common typo for /ipt/
+  robots.txt      these only work at the origin root, not under /ipt/
+  sitemap.xml
+  ipt/            the Nuxt app (app.baseURL is /ipt/, so it MUST live in this directory)
+```
 
-As of 2026-09-01 this has never run: `has_pages` is `false`, there are zero workflow runs, and
-`quiz.jakubwerner.com` has no public DNS record. Do these in order. **Adding DNS first would point
-students at GitHub's "there isn't a site here" 404, which browsers cache** — worse than the current
-NXDOMAIN.
+### One-time Cloudflare setup
 
-1. **Push to `main`.** The workflow only triggers on `push: branches: [main]`, and
-   `actions/configure-pages` enables Pages for you on the first successful run.
-   Watch it with `gh run watch`.
-2. **Verify on the default domain first:** `https://thesanogoeffect.github.io/quiz/ipt/`.
-   If that works, the app works, and anything left is DNS.
-3. **Settings → Pages → Custom domain:** `quiz.jakubwerner.com`. This — not a file in the repo —
-   is what sets the domain.
-4. **Cloudflare:** one `CNAME` record, `quiz` → `thesanogoeffect.github.io`, proxy **off**
-   (grey cloud). An orange-clouded record breaks GitHub's domain verification and certificate
-   issuance.
-5. **Wait** — the certificate can take up to 24 hours. Then tick *Enforce HTTPS*, and check from
-   outside your tailnet: `dig @1.1.1.1 quiz.jakubwerner.com`, or a phone on mobile data.
+1. **Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git**, and pick
+   `thesanogoeffect/quiz`. Authorise the Cloudflare GitHub App for this repo — private is fine.
+2. Build settings:
 
-Note that `jakubwerner.com` is routed to a Tailscale address on your own machines, so
-`quiz.jakubwerner.com` resolving locally proves nothing about whether students can reach it.
+   | Setting | Value |
+   | --- | --- |
+   | Framework preset | None |
+   | Build command | `bash scripts/build_site.sh` |
+   | Build output directory | `dist` |
+   | Root directory | `/` (leave empty) |
+
+   `.node-version` pins Node 22, so nothing else needs configuring.
+3. Deploy, and check the `*.pages.dev` URL Cloudflare gives you — visit `/ipt/` on it. If the quiz
+   loads there, the app works and anything left is DNS.
+4. **Custom domains → Set up a custom domain →** `quiz.jakubwerner.com`. Because the zone is already
+   on Cloudflare, it creates the record and the certificate itself; there is nothing to add by hand.
+5. Verify from outside your tailnet — `dig @1.1.1.1 quiz.jakubwerner.com`, or a phone on mobile
+   data. `jakubwerner.com` is routed to a Tailscale address on your own machines, so the name
+   resolving on your laptop proves nothing about whether students can reach it.
+
+Every push to `main` redeploys. Pull requests get their own preview URL.
 
 ### Adding another subject later
 
-The app is deliberately mounted at a subpath so more courses can be added alongside it. To add one,
-build that app with its own `app.baseURL` and copy it into another directory under `dist/` in the
-workflow's *Assemble site* step.
+The app is deliberately mounted at a subpath so more courses can live alongside it. To add one,
+build that app with its own `app.baseURL` and copy it into another directory under `dist/` in
+`scripts/build_site.sh`.
 
 ## Updating the questions
 

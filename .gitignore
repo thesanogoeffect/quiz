@@ -149,3 +149,6 @@ data/l3.json
 
 # Firestore counter snapshots (scripts/backup_firestore_stats.py) - keep locally
 data/firestore-backup-*.json
+
+# Build output
+dist/
