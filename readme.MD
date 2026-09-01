@@ -102,7 +102,7 @@ build that app with its own `app.baseURL` and copy it into another directory und
 ## Updating the questions
 
 `frontend/public/l3.json` is what the app loads at runtime. The pipeline that produces it lives in
-`scripts/` — see `workflows/pipeline_steps.txt` for the intended order. After regenerating, run the
+`scripts/` — see `scripts/pipeline_steps.txt` for the intended order. After regenerating, run the
 two clean-up steps and copy the result into `frontend/public/l3.json`; pushing redeploys
 automatically.
 
