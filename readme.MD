@@ -116,6 +116,41 @@ The app also normalises data as it loads (trims whitespace, strips leftover `a.`
 prefixes, keeps "none of the above"-style options in last position, repairs malformed explanation
 markup), so the raw export does not have to be perfect.
 
+### The September 2026 review
+
+Every active question was reviewed against the OpenStax Psychology 2e text on 2026-09-02, one
+LLM reviewer per chapter, with the community stats (correct rate, flags, votes) attached as a
+signal. Below-chance correct rates turned out to be a reliable pointer to wrong keys. The full
+record is `data/question_review_2026-09.json`: one entry per touched question with the verdict,
+the problem, the reason (citing the book section) and the exact fields that changed. The rubric
+the reviewers followed is `data/question_review_rubric.md`, so the pass can be repeated.
+
+| Outcome | Questions |
+| --- | --- |
+| Active before / after | 956 / 829 |
+| Wrong key corrected | 25 |
+| Other fixes (ambiguous, broken stem, weak distractor, typo, wrong explanation) | 99 |
+| Moved to the chapter they actually belong to | 44 |
+| Disabled as duplicates | 79 |
+| Disabled as unanswerable from the book or unsalvageable | 48 |
+
+Disabled questions stay in the file with `is_disabled: "1"`, so any of them can be brought back by
+flipping the flag. To apply a findings file (this one, or a future one in the same format):
+
+```bash
+python3 scripts/apply_question_review.py data/question_review_2026-09.json --dry-run
+python3 scripts/apply_question_review.py data/question_review_2026-09.json
+```
+
+The community counters of a re-keyed question describe the old key, so the "x% got this right"
+panel is misleading for those until they are reset. That needs the admin credential:
+
+```bash
+python3 scripts/backup_firestore_stats.py                                        # first
+python3 scripts/reset_question_stats.py data/question_review_2026-09.json --dry-run
+python3 scripts/reset_question_stats.py data/question_review_2026-09.json
+```
+
 ### Privacy
 
 The published `l3.json` is downloadable by anyone. The `author` column originally held TU/e student
@@ -200,21 +235,12 @@ You can also sanity-check in the console — Firestore → Rules → Rules Playg
 
 If any row disagrees, do not deploy — the counters would silently stop moving.
 
-**Deploy these — the database is currently wide open.** Verified against the live project on
-2026-09-01 with non-mutating probes (each write carried an impossible `updateTime` precondition, so
-the rules were evaluated but nothing could commit): an unauthenticated client can today set any
-field to any value, delete a question document, and page through the whole collection. The rules
-close all three.
-
-Nothing in the app breaks: the browser only ever calls `getDoc` and `updateDoc` with
-`increment(±1)` — there is no `getDocs`, `query`, `setDoc`, `addDoc`, `deleteDoc` or `onSnapshot`
-anywhere in `frontend/app/`. The Python pipeline in `scripts/` does list the collection, but it
-uses `firebase_admin`, which bypasses security rules entirely.
-
-The rules themselves have not been executed against the live project, so before deploying, paste
-them into the Firebase console → Firestore → Rules → Rules Playground and confirm the cases listed
-at the top of the file. If they turn out too strict the quiz keeps working — the client logs a
-warning and carries on — but the community counters stop moving.
+The rules were deployed on 2026-09-02. Before that the database was wide open: an unauthenticated
+client could set any field to any value, delete a question document, and page through the whole
+collection. Nothing in the app depends on any of that — the browser only ever calls `getDoc` and
+`updateDoc` with `increment(±1)`; there is no `getDocs`, `query`, `setDoc`, `addDoc`, `deleteDoc`
+or `onSnapshot` anywhere in `frontend/app/`. The Python pipeline in `scripts/` does list the
+collection, but it uses `firebase_admin`, which bypasses security rules entirely.
 
 Worth doing at some point: turn on [App Check](https://firebase.google.com/docs/app-check) with
 reCAPTCHA v3 (it is free on every plan, Spark included). The rules stop a client writing
