@@ -50,13 +50,14 @@ function reload() {
   min-height: calc(100dvh - 64px);
 }
 
-/* The question card is centred in whatever space is left below the app bar and
-   grows with its content, so long questions push the page into a normal scroll
-   instead of being clipped. */
+/* The question card sits directly under the app bar, level with the sidebar
+   cards, and grows with its content so long questions push the page into a
+   normal scroll instead of being clipped. Centring it vertically left a
+   viewport-sized blank band above the question on any large screen. */
 .quiz-container {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 12px;
   min-height: calc(100dvh - 64px);
   max-width: 1000px;

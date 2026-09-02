@@ -97,13 +97,21 @@
         </template>
       </v-app-bar>
 
-      <!-- Left Navigation Drawer -->
-      <v-navigation-drawer v-model="drawer" location="left">
+      <!-- The drawers only reserve space for themselves from Vuetify's `lg`
+           breakpoint (1280px) up. Below that they are temporary overlays with a
+           scrim, so opening them by default covered the question on anything
+           between 960px and 1279px wide - small laptops, zoomed browsers and
+           tablets in landscape. `wide` and `mobile-breakpoint` must agree. -->
+      <v-navigation-drawer v-model="drawer" location="left" mobile-breakpoint="lg">
         <LeftSidebar />
       </v-navigation-drawer>
 
       <!-- Right Navigation Drawer (RightSidebar) -->
-      <v-navigation-drawer v-model="rightDrawer" location="right">
+      <v-navigation-drawer
+        v-model="rightDrawer"
+        location="right"
+        mobile-breakpoint="lg"
+      >
         <RightSidebar />
       </v-navigation-drawer>
 
@@ -209,6 +217,8 @@ const THEME_STORAGE_KEY = "ipt_quiz_theme";
 
 const display = useDisplay();
 const mdAndUp = computed(() => display.mdAndUp.value);
+// Wide enough for both drawers to sit beside the question instead of over it.
+const wide = computed(() => display.lgAndUp.value);
 
 const drawer = ref(false);
 const rightDrawer = ref(false);
@@ -276,7 +286,7 @@ watch(
 // Only force the drawers shut when dropping to a narrow viewport, where they
 // would cover the question. Growing back to desktop leaves whatever the user
 // chose alone.
-watch(mdAndUp, (isWide, wasWide) => {
+watch(wide, (isWide, wasWide) => {
   if (!isWide) {
     drawer.value = false;
     rightDrawer.value = false;
@@ -350,8 +360,8 @@ const openPopup = () => {
 };
 
 onMounted(async () => {
-  drawer.value = mdAndUp.value;
-  rightDrawer.value = mdAndUp.value;
+  drawer.value = wide.value;
+  rightDrawer.value = wide.value;
 
   // Respect an explicit choice; otherwise fall back to the system preference,
   // then to the time of day. It used to reset to the clock on every reload,
