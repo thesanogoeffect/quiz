@@ -1,17 +1,8 @@
-import { initializeApp } from "firebase/app"; // Correct import for Firebase initialization
-import { getFirestore, collection } from "firebase/firestore"; // Firestore-related imports
+import { warmUpFirestore } from "~/services/firestore";
 
-// A Firebase web API key is a project identifier, not a secret - it is meant to
-// ship in client code. What actually protects the data is firestore.rules.
-const firebaseConfig = {
-  apiKey: "AIzaSyDdeQI0zLemr3lZRdJZbYvgh7Lh8i3xQSM",
-  authDomain: "intro-psych-quiz-592fb.firebaseapp.com",
-  projectId: "intro-psych-quiz-592fb",
-  storageBucket: "intro-psych-quiz-592fb.appspot.com",
-  messagingSenderId: "977871458212",
-  appId: "1:977871458212:web:87ea3c5f93814b2c69bb31",
-  measurementId: "G-98WY6TFC04",
-};
+// The Firebase SDK itself is not imported here - see services/firestore.js,
+// which loads it on demand. This plugin only decides whether writes are allowed
+// and asks for the SDK to be fetched once the browser has nothing better to do.
 
 // Anything served from a local machine is development, and development must not
 // move the real community counters. Running the quiz locally for ten minutes
@@ -34,21 +25,17 @@ export default defineNuxtPlugin(() => {
   const forceLive = new URLSearchParams(window.location.search).get("firestore") === "live";
   const readOnly = isLocal() && !forceLive;
 
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-  const questionsRef = collection(db, "questions");
-
   if (readOnly) {
     console.info(
-      "[quiz] Running locally: community stats are read from Firestore but no " +
-        "writes are sent. Append ?firestore=live to write for real."
+      "[quiz] Running locally: no community counters are written and the " +
+        "Firestore SDK is never loaded. Append ?firestore=live to write for real."
     );
+  } else {
+    warmUpFirestore();
   }
 
   return {
     provide: {
-      db,
-      questionsRef,
       // services/firestore.js checks this before issuing any write.
       firestoreReadOnly: readOnly,
     },

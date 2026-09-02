@@ -40,6 +40,17 @@ passion project — I am not responsible for any mistakes or inaccuracies.
   all counters (`frontend/public/stats.json`) that a GitHub Action refreshes weekly, and only the
   ±1 counter *writes* go to Firestore, fire-and-forget. No network call sits between a student
   and the next question, and the free tier covers roughly 20,000 answers a day.
+- **Nothing is downloaded before the first question that the first question does not need.**
+  Three things used to be, and no longer are. The Material Design Icons webfont was 395 kB of
+  woff2 plus 300 kB of CSS defining 7,447 icon classes, of which this app uses thirty; those
+  thirty now ship as SVG paths from `@mdi/js`. The Firestore SDK, whose whole job is to add 1 to
+  a counter, sat in the entry chunk in front of the first paint; it is fetched during the
+  browser's first idle moment instead. And two thirds of `l3.json` was explanations that nobody
+  reads until they have answered something, so `scripts/build_site.sh` splits them into
+  `explanations.json` and the app picks them up on idle as well - the repo still keeps one
+  pretty-printed source file, so question diffs stay readable. Measured on a throttled 4 Mbit
+  connection, that is 524 kB down to 386 kB before the first question appears, 1.9 s down to
+  1.4 s to get there, and 909 kB down to 548 kB for everything a first visit eventually fetches.
 - **The database is locked down and the lockdown is verified from outside.** The
   [security rules](firestore.rules) allow exactly one thing: move one of seven known counters by
   ±1. [`scripts/verify_firestore_rules.py`](scripts/verify_firestore_rules.py) probes the *deployed*
@@ -50,7 +61,8 @@ passion project — I am not responsible for any mistakes or inaccuracies.
   the originals from git history.
 - **The build refuses to ship broken output.** `scripts/build_site.sh` fails on a missing route,
   assets that do not match the base path, a page without a `<title>`, fewer than 500 questions,
-  an un-hashed student number, malformed explanation markup, or a missing stats snapshot.
+  an un-hashed student number, a question with no explanation, malformed explanation markup, or a
+  missing stats snapshot.
 
 ## Stack
 
@@ -120,7 +132,9 @@ site loading locally proves nothing about whether students can reach it.
 
 ## Updating the questions
 
-`frontend/public/l3.json` is what the app loads at runtime. The pipeline that produces it lives in
+`frontend/public/l3.json` is the question set. It is what the app loads in `npm run dev`; a
+built site loads it split in two, questions in `l3.json` and explanations in `explanations.json`
+(see `scripts/build_site.sh`). Keep editing the one file - the split happens on the way out. The pipeline that produces it lives in
 `scripts/` (`scripts/pipeline_steps.txt` has the intended order). After regenerating, run the two
 clean-up steps and copy the result into place; pushing redeploys.
 

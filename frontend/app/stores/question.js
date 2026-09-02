@@ -35,6 +35,7 @@ export const useQuestionStore = defineStore("question", {
     total_skipped_questions: 0,
 
     all_questions: [], // as loaded from JSON file, including all original data
+    explanations: {}, // question id -> explanation HTML, fetched after the first paint
     questionQueue: [], // queue holding the questions waiting to be asked
     currentQuestion: null, // the current question being asked
 
@@ -146,6 +147,12 @@ export const useQuestionStore = defineStore("question", {
       state.BOOK_CHAPTER_NAMES[chapter_id],
 
     getSourceLabel: (state) => (source) => state.SOURCE_LABELS[source] || source,
+
+    // The build splits explanations into their own file, so a question object
+    // usually arrives without one. `npm run dev` serves the unsplit source
+    // file, where the explanation is still inline - hence both lookups.
+    getExplanation: (state) => (question) =>
+      question?.description_llm || state.explanations[question?.id] || "",
 
     getCurrentQuestion: (state) => state.currentQuestion,
 
@@ -360,6 +367,36 @@ export const useQuestionStore = defineStore("question", {
       });
     },
 
+    // Two thirds of the question data is explanations that nobody reads until
+    // they have answered something, so they are fetched separately and never
+    // awaited: the first question must not wait for them. By the time a student
+    // has read a question and picked an answer, the file has long since landed.
+    //
+    // A failure here is not an error worth showing. The sidebar already handles
+    // a missing explanation, and the rest of the quiz works without one.
+    loadExplanations() {
+      // `npm run dev` serves frontend/public/l3.json as it is, explanations
+      // included, and there is no explanations.json next to it. Asking for one
+      // would only put a 404 in every developer's console.
+      if (this.all_questions.some((q) => q.description_llm)) return;
+
+      const buildId = useRuntimeConfig().app.buildId;
+      const fetchThem = () =>
+        $fetch(`/explanations.json?v=${buildId}`)
+          .then((response) => {
+            if (response && typeof response === "object") this.explanations = response;
+          })
+          .catch((error) => {
+            console.warn("Could not load the explanations:", error?.message);
+          });
+
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(fetchThem, { timeout: 2000 });
+      } else {
+        setTimeout(fetchThem, 500);
+      }
+    },
+
     fill_filters_from_questions() {
       const chapters = new Set();
       const sources = new Set();
@@ -394,6 +431,7 @@ export const useQuestionStore = defineStore("question", {
       useQuestionStatsStore().loadSnapshot();
       try {
         await this.loadQuestionsFromJSON();
+        this.loadExplanations();
       } catch (error) {
         console.error("Could not load the question set:", error);
         this.loadError =

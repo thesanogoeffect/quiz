@@ -14,6 +14,10 @@
 #     sitemap.xml
 #     ipt/            the Nuxt app (its app.baseURL is /ipt/, so it MUST live here)
 #
+# frontend/public/l3.json holds the whole question set, explanations included,
+# pretty-printed so a question change shows up in a diff. That single file is
+# split in two on the way out - see "Splitting the explanations" below.
+#
 # Usage:  bash scripts/build_site.sh
 #         OUT=somewhere bash scripts/build_site.sh
 
@@ -61,11 +65,37 @@ cp -r "$REPO_ROOT/deploy/root/." "$OUT/"
 # macOS AppleDouble files must never be published
 find "$OUT" -name '._*' -delete
 
+echo "==> Splitting the explanations out of l3.json"
+# Two thirds of l3.json is description_llm, and none of it is needed until a
+# student has answered something. Ship the questions on their own and put the
+# explanations in a file the app fetches once the browser goes idle. The repo
+# keeps one pretty-printed source file; only the built output is split, so
+# question diffs stay readable and no script has to know about this.
+node - "$OUT/$BASE_PATH" <<'JS'
+const fs = require("node:fs");
+const dir = process.argv[2];
+const questions = JSON.parse(fs.readFileSync(`${dir}/l3.json`, "utf8"));
+
+const explanations = {};
+for (const question of questions) {
+  explanations[question.id] = question.description_llm ?? "";
+  delete question.description_llm;
+}
+
+// Minified: these two are only ever read by the app, never by a human.
+fs.writeFileSync(`${dir}/l3.json`, JSON.stringify(questions));
+fs.writeFileSync(`${dir}/explanations.json`, JSON.stringify(explanations));
+
+const kb = (f) => Math.round(fs.statSync(`${dir}/${f}`).size / 1024);
+console.log(`    l3.json ${kb("l3.json")} kB, explanations.json ${kb("explanations.json")} kB`);
+JS
+
 echo "==> Checking the build"
 fail() { echo "::error::$1" >&2; exit 1; }
 
 [ -f "$OUT/$BASE_PATH/index.html" ]        || fail "missing $BASE_PATH/index.html"
 [ -f "$OUT/$BASE_PATH/l3.json" ]           || fail "missing $BASE_PATH/l3.json"
+[ -f "$OUT/$BASE_PATH/explanations.json" ] || fail "missing $BASE_PATH/explanations.json"
 [ -f "$OUT/$BASE_PATH/about/index.html" ]  || fail "missing $BASE_PATH/about/index.html"
 [ -f "$OUT/$BASE_PATH/questions/index.html" ] || fail "missing $BASE_PATH/questions/index.html"
 [ -f "$OUT/index.html" ]                   || fail "missing the root redirect"
@@ -93,11 +123,28 @@ if (questions.length <= 500) die(`only ${questions.length} questions in l3.json`
 const raw = questions.filter((q) => q.author && /^\d+$/.test(String(q.author).trim()));
 if (raw.length) die(`${raw.length} questions still have un-hashed authors, e.g. ${raw.slice(0, 5).map((q) => q.id)}`);
 
-// `<pFoo` and `</<` make the browser swallow a whole sentence of explanation.
-const bad = questions.filter((q) => /<p[A-Za-z]|<\/(?![A-Za-z]|>)/.test(q.description_llm || ""));
-if (bad.length) die(`malformed explanation markup in ${bad.slice(0, 5).map((q) => q.id)} - run scripts/fix_l3_html.py`);
+// Explanations were split into their own file above, so they are checked from
+// there. Every question needs one: a missing entry is a silent "No explanation
+// available." in the sidebar, which is exactly the kind of thing that only
+// turns up when a student asks why.
+const explanationsPath = process.argv[2].replace(/l3\.json$/, "explanations.json");
+let explanations;
+try {
+  explanations = JSON.parse(require("node:fs").readFileSync(explanationsPath, "utf8"));
+} catch (e) {
+  die(`explanations.json missing or unreadable (${e.message}) - did the split step run?`);
+}
 
-console.log(`    ${questions.length} questions, authors hashed, markup clean`);
+const orphans = questions.filter((q) => !String(explanations[q.id] ?? "").trim());
+if (orphans.length) die(`${orphans.length} questions have no explanation, e.g. ${orphans.slice(0, 5).map((q) => q.id)}`);
+
+if (questions.some((q) => "description_llm" in q)) die("l3.json still carries description_llm - the split step did not run");
+
+// `<pFoo` and `</<` make the browser swallow a whole sentence of explanation.
+const bad = Object.entries(explanations).filter(([, html]) => /<p[A-Za-z]|<\/(?![A-Za-z]|>)/.test(html || ""));
+if (bad.length) die(`malformed explanation markup in ${bad.slice(0, 5).map(([id]) => id)} - run scripts/fix_l3_html.py`);
+
+console.log(`    ${questions.length} questions, authors hashed, ${Object.keys(explanations).length} explanations, markup clean`);
 
 // The community stats the app shows come from this snapshot, not Firestore.
 const statsPath = process.argv[2].replace(/l3\.json$/, "stats.json");

@@ -89,7 +89,9 @@ const currentQuestion = computed(() =>
 const currentQuestionId = computed(() => currentQuestion.value?.id ?? "-");
 
 const llmExplanation = computed(() => {
-  const raw = currentQuestion.value?.description_llm;
+  // Resolved through the store rather than off the question object: the
+  // explanations arrive in their own file, after the question was queued.
+  const raw = questionStore.getExplanation(currentQuestion.value);
   return raw ? sanitizeHtml(raw) : "No explanation available.";
 });
 
