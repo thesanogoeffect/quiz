@@ -2,7 +2,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2025-09-18",
   app: {
     // The site lives at https://quiz.jakubwerner.com/ipt/ , so the built output
-    // must be deployed into an /ipt/ directory. See .github/workflows/deploy.yml.
+    // must be deployed into an /ipt/ directory. See scripts/build_site.sh.
     baseURL: "/ipt/",
     // Baked into the static shell. With ssr:false, useHead() only runs in the
     // browser, so anything left there is missing from the generated HTML -

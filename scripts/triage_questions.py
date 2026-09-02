@@ -3,7 +3,7 @@
 
 Below-chance correct rates and heavy flagging turned out to be a reliable
 signal during the September 2026 review (see data/question_review_2026-09.json
-and readme.MD): 99 of the 136 questions this triage flagged needed a real fix.
+and README.md): 99 of the 136 questions this triage flagged needed a real fix.
 Re-run it whenever frontend/public/stats.json is refreshed with a new season
 of answers, to find what is worth a look before the next review pass.
 

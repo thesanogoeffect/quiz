@@ -1,0 +1,31 @@
+# Refreshes the community-stats snapshot the app ships with. The app reads
+# frontend/public/stats.json instead of Firestore, so this is the only thing
+# that moves the displayed numbers. Committing the file triggers the normal
+# Cloudflare Pages deploy. Also runnable by hand from the Actions tab.
+name: Refresh stats snapshot
+
+on:
+  schedule:
+    - cron: "17 4 * * 1" # Mondays 04:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: node scripts/fetch_stats_snapshot.mjs
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add frontend/public/stats.json
+          git diff --cached --quiet && echo "no change" && exit 0
+          git commit -m "Refresh the community stats snapshot"
+          git push
