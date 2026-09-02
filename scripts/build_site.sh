@@ -33,12 +33,30 @@ else
 fi
 
 echo "==> Building the Nuxt app"
+# Pin the Nitro preset. Nitro sniffs the environment and picks a preset on its
+# own: on Cloudflare Pages it chose `cloudflare-pages`, which builds a Worker
+# instead of a static site - no HTML shell, and the assets nested under the
+# baseURL. This site is plain static files on any host, so say so explicitly and
+# get an identical build everywhere.
+export NITRO_PRESET=static
 npx nuxt generate
 
 echo "==> Assembling $OUT"
+# Nitro has shipped both layouts: assets at the root of .output/public, and
+# assets nested under the baseURL. Take whichever one actually holds the app.
+GENERATED="$REPO_ROOT/frontend/.output/public"
+if [ -f "$GENERATED/$BASE_PATH/index.html" ]; then
+  GENERATED="$GENERATED/$BASE_PATH"
+fi
+[ -f "$GENERATED/index.html" ] || {
+  echo "::error::no index.html under frontend/.output/public - did the Nitro preset change?" >&2
+  find "$REPO_ROOT/frontend/.output/public" -maxdepth 2 -name '*.html' >&2 || true
+  exit 1
+}
+
 rm -rf "$OUT"
 mkdir -p "$OUT/$BASE_PATH"
-cp -r "$REPO_ROOT/frontend/.output/public/." "$OUT/$BASE_PATH/"
+cp -r "$GENERATED/." "$OUT/$BASE_PATH/"
 cp -r "$REPO_ROOT/deploy/root/." "$OUT/"
 # macOS AppleDouble files must never be published
 find "$OUT" -name '._*' -delete
