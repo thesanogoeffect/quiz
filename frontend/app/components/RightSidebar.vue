@@ -93,7 +93,10 @@ const llmExplanation = computed(() => {
   return raw ? sanitizeHtml(raw) : "No explanation available.";
 });
 
-const sourceLabel = computed(() => currentQuestion.value?.source || "N/A");
+const sourceLabel = computed(() => {
+  const source = currentQuestion.value?.source;
+  return source ? questionStore.getSourceLabel(source) : "N/A";
+});
 
 // The stored value is a salted HMAC token (see scripts/anonymize_authors.py),
 // never a student number. Book questions have no author at all.

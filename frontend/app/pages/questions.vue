@@ -57,7 +57,7 @@
           <h2 class="text-h6 mb-3">By source</h2>
           <v-card class="rounded-xl pa-4 mb-6" flat>
             <div v-for="row in sources" :key="row.name" class="bar-row">
-              <span class="bar-label">{{ row.name }}</span>
+              <span class="bar-label">{{ questionStore.getSourceLabel(row.name) }}</span>
               <div class="bar-track">
                 <div
                   class="bar-fill"
@@ -75,7 +75,9 @@
                 <thead>
                   <tr>
                     <th scope="col">Chapter</th>
-                    <th v-for="s in sourceNames" :key="s" scope="col">{{ s }}</th>
+                    <th v-for="s in sourceNames" :key="s" scope="col">
+                      {{ questionStore.getSourceLabel(s) }}
+                    </th>
                     <th scope="col">Total</th>
                   </tr>
                 </thead>

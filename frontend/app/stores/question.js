@@ -59,6 +59,13 @@ export const useQuestionStore = defineStore("question", {
     reviewMode: false,
     currentReviewPosition: 0, //
     currentlyReviewedQuestion: null,
+    // What the raw `source` values are called in the UI. The values themselves
+    // are unchanged everywhere else (data, filters, localStorage).
+    SOURCE_LABELS: {
+      Book: "OpenStax book",
+      "21/22_Student_Halfway": "Students 2021/22",
+      "23/24_Student_Final": "Students 2023/24",
+    },
     BOOK_CHAPTER_NAMES: {
       1: "Introduction to Psychology",
       2: "Psychological Research",
@@ -137,6 +144,8 @@ export const useQuestionStore = defineStore("question", {
 
     getChapterById: (state) => (chapter_id) =>
       state.BOOK_CHAPTER_NAMES[chapter_id],
+
+    getSourceLabel: (state) => (source) => state.SOURCE_LABELS[source] || source,
 
     getCurrentQuestion: (state) => state.currentQuestion,
 

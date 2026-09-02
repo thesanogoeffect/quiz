@@ -82,7 +82,7 @@
         </p>
         <p>
           Close to nothing so far! Thanks to Vuetify, the Firebase free tier and
-          GitHub Pages &amp; GitHub Actions! I only pay for LLM tokens. If you like
+          Cloudflare Pages! I only pay for LLM tokens. If you like
           the project and want to attempt something similar yourself, feel free to
           contact me. In case you're also a student, check out the GitHub Student
           Pack!

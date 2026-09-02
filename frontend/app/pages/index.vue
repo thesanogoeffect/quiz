@@ -156,7 +156,7 @@
               chips
               closable-chips
               variant="outlined"
-              :items="availableSources"
+              :items="sourceItems"
               v-model="selectedSources"
               label="Selected Sources"
             ></v-select>
@@ -243,6 +243,13 @@ const availableChapters = computed<number[]>(() =>
 const availableSources = computed<string[]>(() => [
   ...(questionStore.getAllSources as string[]),
 ]);
+// The select shows friendly names but keeps the raw source string as its value.
+const sourceItems = computed(() =>
+  availableSources.value.map((s) => ({
+    title: questionStore.getSourceLabel(s) as string,
+    value: s,
+  }))
+);
 
 const selectedChapters = ref<number[]>([]);
 const selectedSources = ref<string[]>([]);
