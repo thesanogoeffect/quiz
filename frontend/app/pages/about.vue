@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar color="primary" density="comfortable" flat>
       <v-btn
-        icon="mdi-arrow-left"
+        icon="$arrowLeft"
         variant="text"
         aria-label="Back to the quiz"
         :to="{ name: 'index' }"

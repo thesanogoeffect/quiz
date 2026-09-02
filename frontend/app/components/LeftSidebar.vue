@@ -10,27 +10,27 @@
 
       <!-- Existing User Stats -->
       <div class="stat-row">
-        <v-icon color="secondary" size="small">mdi-eye-outline</v-icon>
+        <v-icon color="secondary" size="small">$eyeOutline</v-icon>
         <span class="stat-label">Total Shown:</span>
         <span class="stat-value">{{ questionStore.getTotalShownQuestions }}</span>
       </div>
       <div class="stat-row">
-        <v-icon color="primary" size="small">mdi-checkbox-marked-circle-outline</v-icon>
+        <v-icon color="primary" size="small">$checkboxMarkedCircleOutline</v-icon>
         <span class="stat-label">Answered:</span>
         <span class="stat-value">{{ questionStore.getTotalAnsweredQuestions }}</span>
       </div>
       <div class="stat-row">
-        <v-icon color="success" size="small">mdi-check-circle-outline</v-icon>
+        <v-icon color="success" size="small">$checkCircleOutline</v-icon>
         <span class="stat-label">Correct:</span>
         <span class="stat-value">{{ questionStore.getTotalCorrectAnswers }}</span>
       </div>
       <div class="stat-row">
-        <v-icon color="warning" size="small">mdi-skip-next-circle-outline</v-icon>
+        <v-icon color="warning" size="small">$skipNextCircleOutline</v-icon>
         <span class="stat-label">Skipped:</span>
         <span class="stat-value">{{ questionStore.getSkippedQuestions }}</span>
       </div>
       <div class="stat-row">
-        <v-icon color="info" size="small">mdi-help-circle-outline</v-icon>
+        <v-icon color="info" size="small">$helpCircleOutline</v-icon>
         <span class="stat-label">Skips Left:</span>
         <span class="stat-value">{{ questionStore.getSkipsRemaining }}</span>
       </div>
@@ -76,27 +76,27 @@
         </v-alert>
 
         <div class="stat-row">
-          <v-icon color="secondary" size="small">mdi-eye-outline</v-icon>
+          <v-icon color="secondary" size="small">$eyeOutline</v-icon>
           <span class="stat-label">Times Asked:</span>
           <span class="stat-value">{{ questionStats.times_asked }}</span>
         </div>
         <div class="stat-row">
-          <v-icon color="success" size="small">mdi-check-circle-outline</v-icon>
+          <v-icon color="success" size="small">$checkCircleOutline</v-icon>
           <span class="stat-label">Answered Correctly:</span>
           <span class="stat-value">{{ questionStats.times_answered_correct }}</span>
         </div>
         <div class="stat-row">
-          <v-icon color="primary" size="small">mdi-checkbox-marked-circle-outline</v-icon>
+          <v-icon color="primary" size="small">$checkboxMarkedCircleOutline</v-icon>
           <span class="stat-label">Times Answered:</span>
           <span class="stat-value">{{ questionStats.times_answered }}</span>
         </div>
         <div class="stat-row">
-          <v-icon color="warning" size="small">mdi-skip-next-circle-outline</v-icon>
+          <v-icon color="warning" size="small">$skipNextCircleOutline</v-icon>
           <span class="stat-label">Times Skipped:</span>
           <span class="stat-value">{{ questionStats.times_skipped }}</span>
         </div>
         <div class="stat-row">
-          <v-icon color="error" size="small">mdi-flag-outline</v-icon>
+          <v-icon color="error" size="small">$flagOutline</v-icon>
           <span class="stat-label">Times Reported:</span>
           <span class="stat-value">{{ questionStats.times_flagged }}</span>
         </div>

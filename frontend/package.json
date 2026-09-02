@@ -10,16 +10,15 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@mdi/font": "^7.4.47",
-    "firebase": "^12.2.1",
-    "nuxt": "^4.1.2",
-    "pinia": "^2.3.1",
-    "vue": "^3.5.21",
-    "vue-router": "^4.5.1",
-    "vuetify": "^3.10.2"
+    "@mdi/js": "^7.4.47",
+    "firebase": "^12.18.0",
+    "nuxt": "^4.5.2",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.42",
+    "vuetify": "^3.13.3"
   },
   "devDependencies": {
-    "@pinia/nuxt": "^0.5.5",
+    "@pinia/nuxt": "^1.0.2",
     "vuetify-nuxt-module": "^0.16.1"
   }
 }

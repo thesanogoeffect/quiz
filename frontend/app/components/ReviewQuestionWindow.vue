@@ -101,7 +101,7 @@ const outcome = computed(() => {
   if (q.skipped) {
     return {
       label: "Skipped - here is the answer",
-      icon: "mdi-skip-next-circle-outline",
+      icon: "$skipNextCircleOutline",
       color: "warning",
       textClass: "text-warning",
     };
@@ -109,14 +109,14 @@ const outcome = computed(() => {
   if (q.guessed_index === q.correct_answer_index) {
     return {
       label: "Correct!",
-      icon: "mdi-check-circle",
+      icon: "$checkCircle",
       color: "success",
       textClass: "text-success",
     };
   }
   return {
     label: "Not quite",
-    icon: "mdi-close-circle",
+    icon: "$closeCircle",
     color: "error",
     textClass: "text-error",
   };

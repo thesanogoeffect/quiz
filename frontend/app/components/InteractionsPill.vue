@@ -8,7 +8,7 @@
   >
     <!-- Upvote Button -->
     <v-btn
-      :icon="upvoted ? 'mdi-arrow-up-bold' : 'mdi-arrow-up-bold-outline'"
+      :icon="upvoted ? '$arrowUpBold' : '$arrowUpBoldOutline'"
       variant="plain"
       density="comfortable"
       :disabled="!currentQuestionId"
@@ -26,7 +26,7 @@
       size="small"
       :title="`Community score: ${karma}`"
     >
-      <v-icon size="small" class="mr-1">mdi-karma</v-icon>
+      <v-icon size="small" class="mr-1">$karma</v-icon>
       <span
         :style="{
           color: karma > 0 ? '#2E7D32' : karma < 0 ? '#C62828' : '',
@@ -37,7 +37,7 @@
 
     <!-- Downvote Button -->
     <v-btn
-      :icon="downvoted ? 'mdi-arrow-down-bold' : 'mdi-arrow-down-bold-outline'"
+      :icon="downvoted ? '$arrowDownBold' : '$arrowDownBoldOutline'"
       variant="plain"
       density="comfortable"
       :disabled="!currentQuestionId"
@@ -51,7 +51,7 @@
 
     <!-- Flag Button -->
     <v-btn
-      :icon="flagged ? 'mdi-flag' : 'mdi-flag-outline'"
+      :icon="flagged ? '$flag' : '$flagOutline'"
       variant="plain"
       density="comfortable"
       :disabled="!currentQuestionId"

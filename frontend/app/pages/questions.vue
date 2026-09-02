@@ -2,7 +2,7 @@
   <v-app>
     <v-app-bar color="primary" density="comfortable" flat>
       <v-btn
-        icon="mdi-arrow-left"
+        icon="$arrowLeft"
         variant="text"
         aria-label="Back to the quiz"
         :to="{ name: 'index' }"
@@ -13,7 +13,7 @@
     <v-main>
       <v-container class="page">
         <div v-if="questionStore.getLoadError" class="text-center py-12">
-          <v-icon size="48" color="warning">mdi-cloud-alert</v-icon>
+          <v-icon size="48" color="warning">$cloudAlert</v-icon>
           <p class="text-body-1 my-4">{{ questionStore.getLoadError }}</p>
           <v-btn color="primary" @click="reload">Try again</v-btn>
         </div>

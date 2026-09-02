@@ -9,22 +9,22 @@
       <v-divider class="mb-3"></v-divider>
 
       <div class="info-row">
-        <v-icon color="info" size="small">mdi-pound</v-icon>
+        <v-icon color="info" size="small">$pound</v-icon>
         <span>ID: {{ currentQuestionId }}</span>
       </div>
 
       <div class="info-row">
-        <v-icon color="primary" size="small">mdi-book</v-icon>
+        <v-icon color="primary" size="small">$book</v-icon>
         <span>Chapter: {{ chapterLabel }}</span>
       </div>
 
       <div class="info-row">
-        <v-icon color="secondary" size="small">mdi-book-open-page-variant</v-icon>
+        <v-icon color="secondary" size="small">$bookOpenPageVariant</v-icon>
         <span>Source: {{ sourceLabel }}</span>
       </div>
 
       <div class="info-row">
-        <v-icon color="primary" size="small">mdi-account</v-icon>
+        <v-icon color="primary" size="small">$account</v-icon>
         <span>
           Author: <span class="author-token">{{ authorLabel }}</span>
           <v-tooltip
@@ -39,7 +39,7 @@
                 class="ml-1"
                 tabindex="0"
                 aria-label="What is this tag?"
-                >mdi-help-circle-outline</v-icon
+                >$helpCircleOutline</v-icon
               >
             </template>
           </v-tooltip>

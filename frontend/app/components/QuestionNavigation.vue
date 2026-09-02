@@ -1,7 +1,7 @@
 <template>
   <div class="nav-row d-flex align-center justify-center ga-3 flex-wrap">
     <v-btn
-      icon="mdi-arrow-left"
+      icon="$arrowLeft"
       :disabled="!canGoLeft || busy"
       :aria-label="leftLabel"
       :title="leftLabel"
@@ -12,7 +12,7 @@
     <InteractionsPill />
 
     <v-btn
-      icon="mdi-arrow-right"
+      icon="$arrowRight"
       :disabled="!canGoRight || busy"
       :aria-label="rightLabel"
       :title="rightLabel"

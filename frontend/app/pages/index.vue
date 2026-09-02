@@ -9,7 +9,7 @@
         <v-app-bar-nav-icon
           variant="text"
           @click="drawer = !drawer"
-          icon="mdi-chart-bar"
+          icon="$chartBar"
           aria-label="Toggle your stats"
           title="Your stats"
         ></v-app-bar-nav-icon>
@@ -21,21 +21,21 @@
         <v-spacer></v-spacer>
 
         <v-btn
-          icon="mdi-filter"
+          icon="$filter"
           variant="text"
           aria-label="Filter questions"
           title="Filter questions"
           @click="filterDialog = true"
         ></v-btn>
         <v-btn
-          :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+          :icon="isDark ? '$weatherSunny' : '$weatherNight'"
           variant="text"
           :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           :title="isDark ? 'Light mode' : 'Dark mode'"
           @click="toggleTheme"
         ></v-btn>
         <v-btn
-          icon="mdi-help-circle"
+          icon="$helpCircle"
           variant="text"
           aria-label="How this works"
           title="How this works"
@@ -47,7 +47,7 @@
         <v-menu v-if="!mdAndUp">
           <template v-slot:activator="{ props }">
             <v-btn
-              icon="mdi-dots-vertical"
+              icon="$dotsVertical"
               variant="text"
               aria-label="More"
               v-bind="props"
@@ -55,17 +55,17 @@
           </template>
           <v-list density="compact">
             <v-list-item
-              prepend-icon="mdi-chart-bell-curve"
+              prepend-icon="$chartBellCurve"
               title="Question bank"
               :to="{ name: 'questions' }"
             ></v-list-item>
             <v-list-item
-              prepend-icon="mdi-information"
+              prepend-icon="$information"
               title="About"
               :to="{ name: 'about' }"
             ></v-list-item>
             <v-list-item
-              prepend-icon="mdi-format-align-right"
+              prepend-icon="$formatAlignRight"
               title="Question info"
               @click="toggleRightDrawer"
             ></v-list-item>
@@ -74,21 +74,21 @@
 
         <template v-else>
           <v-btn
-            icon="mdi-chart-bell-curve"
+            icon="$chartBellCurve"
             variant="text"
             aria-label="Question bank"
             title="Question bank"
             :to="{ name: 'questions' }"
           ></v-btn>
           <v-btn
-            icon="mdi-information"
+            icon="$information"
             variant="text"
             aria-label="About this project"
             title="About"
             :to="{ name: 'about' }"
           ></v-btn>
           <v-btn
-            icon="mdi-format-align-right"
+            icon="$formatAlignRight"
             variant="text"
             aria-label="Toggle question info"
             title="Question info"

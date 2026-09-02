@@ -6,7 +6,7 @@
         v-if="questionStore.getLoadError"
         class="d-flex flex-column align-center justify-center text-center flex-grow-1 ga-4"
       >
-        <v-icon size="48" color="warning">mdi-cloud-alert</v-icon>
+        <v-icon size="48" color="warning">$cloudAlert</v-icon>
         <p class="text-body-1">{{ questionStore.getLoadError }}</p>
         <v-btn color="primary" @click="reload">Try again</v-btn>
       </div>
