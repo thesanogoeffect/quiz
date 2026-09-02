@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { getQuestionById, incrementQuestionFields } from "~/services/firestore";
+import { incrementQuestionFields } from "~/services/firestore";
 // THIS STORE IS ONLY FOR DATA THAT GOES TO FIRESTORE!
 
 // This store enables us to access the Firestore data easily
@@ -17,24 +17,14 @@ const STORAGE_KEYS = {
 // "ipt_upvote_cache"; migrate whichever copy an existing user has.
 const LEGACY_UPVOTE_KEY = "ipt_upvote_cache";
 
-// Community stats are decoration. If Firestore has not answered within this
-// many milliseconds, serve the question anyway - a stalled read must never sit
-// between a student and the next question.
-const STATS_TIMEOUT_MS = 3000;
-
-function withTimeout(promise, ms) {
-  return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => {
-      const error = new Error("timed out");
-      error.code = "timeout";
-      reject(error);
-    }, ms);
-    promise.then(
-      (value) => { clearTimeout(timer); resolve(value); },
-      (error) => { clearTimeout(timer); reject(error); }
-    );
-  });
-}
+// Community stats come from /stats.json, a snapshot of the Firestore counters
+// that ships with the build and is refreshed weekly by a GitHub Action (see
+// scripts/fetch_stats_snapshot.mjs). The app never reads Firestore at runtime:
+// a live read per question put a network round trip on the critical path and
+// cost a document read for a number that changes by one.
+//
+// Module-scope because it holds a Promise, which must not be made reactive.
+let inFlightSnapshot = null;
 
 const EMPTY_STATS = {
   times_asked: 0,
@@ -80,7 +70,9 @@ export const useQuestionStatsStore = defineStore("questionstats", {
     current_questions_increment_fields: {}, // {int: dict} a dictionary of question_id to fields to increment, current proposed changes
     cached_questions_increment_fields: {}, // keeping track of what was already sent to Firestore
 
-    statsAvailable: true, // false once Firestore has failed, so the UI can hide community numbers
+    snapshot: null, // {question_id: counters} from /stats.json, once loaded
+    snapshotFetchedAt: null, // ISO timestamp of the snapshot
+    statsAvailable: true, // false when the snapshot could not be loaded
 
     PERSISTENT_KEYS_ACROSS_SESSIONS: [
       "times_flagged",
@@ -132,6 +124,7 @@ export const useQuestionStatsStore = defineStore("questionstats", {
       return !!state.flag_cache[question_id];
     },
     getStatsAvailable: (state) => state.statsAvailable,
+    getSnapshotFetchedAt: (state) => state.snapshotFetchedAt,
   },
 
   actions: {
@@ -141,38 +134,44 @@ export const useQuestionStatsStore = defineStore("questionstats", {
     key(question_id) {
       return String(question_id);
     },
+    // Loads the snapshot once; every caller shares the same promise. Never
+    // rejects - a missing snapshot only hides the community numbers.
+    loadSnapshot() {
+      if (this.snapshot) return Promise.resolve();
+      inFlightSnapshot ??= this._loadSnapshot().finally(() => {
+        inFlightSnapshot = null;
+      });
+      return inFlightSnapshot;
+    },
+    async _loadSnapshot() {
+      try {
+        const buildId = useRuntimeConfig().app.buildId;
+        const data = await $fetch(`/stats.json?v=${buildId}`);
+        if (!data || typeof data.questions !== "object") {
+          throw new Error("stats.json has no questions object");
+        }
+        this.snapshot = data.questions;
+        this.snapshotFetchedAt = data.fetched_at || null;
+        this.statsAvailable = true;
+      } catch (error) {
+        console.warn("Community stats snapshot unavailable:", error?.message);
+        this.snapshot = {};
+        this.statsAvailable = false;
+      }
+    },
     async fetchQuestionStats(question_id) {
       const id = this.key(question_id);
       this.current_question_id = id;
 
-      if (id in this.question_cache) {
-        this.current_question_stats = this.question_cache[id];
-        // Rebuilt, not preserved: a question served a second time in one
-        // session needs a fresh baseline, or its counters are never sent.
-        this.preBuildIncrementFields(id, { force: true });
-        return;
+      if (!(id in this.question_cache)) {
+        await this.loadSnapshot();
+        // The session copy is bumped locally as the student answers and votes,
+        // so the numbers on screen include their own actions.
+        this.question_cache[id] = { ...EMPTY_STATS, ...(this.snapshot[id] || {}) };
       }
-
-      let stats = null;
-      let missing = false;
-      try {
-        stats = await withTimeout(getQuestionById(id), STATS_TIMEOUT_MS);
-      } catch (error) {
-        // A missing document or an offline browser must not stop the quiz -
-        // fall back to zeroes and carry on.
-        console.warn(`No community stats for question ${id}:`, error?.message);
-        missing = error?.code === "not-found";
-        if (!missing) this.statsAvailable = false;
-      }
-
-      this.current_question_stats = { ...EMPTY_STATS, ...(stats || {}) };
-      // Only cache a value we actually believe. Caching zeroes after a network
-      // blip would show 0s for that question for the rest of the session, since
-      // the cache-hit branch above never re-fetches.
-      if (stats || missing) {
-        this.question_cache[id] = this.current_question_stats;
-      }
-
+      this.current_question_stats = this.question_cache[id];
+      // Rebuilt, not preserved: a question served a second time in one
+      // session needs a fresh baseline, or its counters are never sent.
       this.preBuildIncrementFields(id, { force: true });
     },
     loadUpvoteCacheFromLocalStorage() {

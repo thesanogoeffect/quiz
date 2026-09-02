@@ -61,6 +61,9 @@
       <div v-if="showGlobalStats">
         <h2 class="mb-2 mt-4 text-center">Community Stats</h2>
         <v-divider class="mb-3"></v-divider>
+        <p v-if="snapshotDate" class="text-caption text-medium-emphasis text-center mb-3">
+          Snapshot from {{ snapshotDate }}, refreshed weekly.
+        </p>
 
         <v-alert
           v-if="!questionStatsStore.getStatsAvailable"
@@ -167,6 +170,15 @@ const questionStats = computed(
       times_downvoted: 0,
     }
 );
+
+const snapshotDate = computed(() => {
+  const iso = questionStatsStore.getSnapshotFetchedAt;
+  if (!iso) return null;
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+});
 
 const correctPercentage = computed(() => {
   if (questionStats.value.times_answered > 0) {

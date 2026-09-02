@@ -390,6 +390,8 @@ export const useQuestionStore = defineStore("question", {
     },
     async _setUp() {
       this.loadError = null;
+      // Kick off the stats snapshot in parallel; the first question awaits it.
+      useQuestionStatsStore().loadSnapshot();
       try {
         await this.loadQuestionsFromJSON();
       } catch (error) {

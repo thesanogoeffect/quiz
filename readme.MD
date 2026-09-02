@@ -180,7 +180,22 @@ regardless of what is in the data. Chapters 11, 13 and 16 are out of scope for t
 ## Community stats
 
 Per-question counters (times asked/answered/correct/skipped/flagged, up- and downvotes) live in a
-Firestore collection called `questions`, keyed by the question id as a string. The Firebase web
+Firestore collection called `questions`, keyed by the question id as a string.
+
+**The app never reads Firestore.** It loads `frontend/public/stats.json`, a snapshot of all the
+counters that ships with the build, and bumps its in-memory copy as the student answers and votes,
+so the numbers on screen include their own actions. Only the counter *writes* go to Firestore,
+fire-and-forget. This keeps every network dependency off the path between a student and the next
+question, and costs zero document reads. The sidebar shows the snapshot's date.
+
+`.github/workflows/refresh-stats.yml` regenerates the snapshot every Monday (or on demand from the
+Actions tab) and commits it, which triggers the normal Cloudflare deploy. To refresh by hand:
+
+```bash
+node scripts/fetch_stats_snapshot.mjs     # -> frontend/public/stats.json, then commit
+```
+
+The build refuses to finish without a parseable snapshot and warns when it is over 60 days old. The Firebase web
 config in `frontend/app/plugins/firebase.client.js` is public by design — a web API key is an
 identifier, not a secret. What actually protects the data is the security rules.
 
@@ -237,8 +252,8 @@ If any row disagrees, do not deploy — the counters would silently stop moving.
 
 The rules were deployed on 2026-09-02. Before that the database was wide open: an unauthenticated
 client could set any field to any value, delete a question document, and page through the whole
-collection. Nothing in the app depends on any of that — the browser only ever calls `getDoc` and
-`updateDoc` with `increment(±1)`; there is no `getDocs`, `query`, `setDoc`, `addDoc`, `deleteDoc`
+collection. Nothing in the app depends on any of that — the browser only ever calls `updateDoc` with
+`increment(±1)`; there is no `getDoc`, `getDocs`, `query`, `setDoc`, `addDoc`, `deleteDoc`
 or `onSnapshot` anywhere in `frontend/app/`. The Python pipeline in `scripts/` does list the
 collection, but it uses `firebase_admin`, which bypasses security rules entirely.
 
@@ -250,11 +265,11 @@ reCAPTCHA v3 (it is free on every plan, Spark included). The rules stop a client
 
 Short answer: yes, and no. Measured on 2026-09-01:
 
-- The app does **one document read and one document write per question served**. Nothing else
-  touches the database.
-- The free (Spark) quota is 50,000 reads and 20,000 writes per day. **Writes bind first**, so the
-  ceiling is about 20,000 questions answered per day — roughly 330 students doing 60 questions
-  each, or 200 doing 100.
+- The app does **one document write per question served** and no reads at all (the stats come
+  from the shipped snapshot; the weekly refresh reads every document once).
+- The free (Spark) quota is 50,000 reads and 20,000 writes per day, so the ceiling is about
+  20,000 questions answered per day — roughly 330 students doing 60 questions each, or 200
+  doing 100.
 - Lifetime usage to date is **131,380 questions asked / 124,675 answered**. Even if every one of
   those had happened in a single 20-day exam period, that is a third of the daily free quota.
 - **On Spark a bill is not possible.** No payment method is attached, and exceeding the quota

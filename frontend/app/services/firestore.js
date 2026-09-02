@@ -1,25 +1,8 @@
-import { doc, getDoc, updateDoc, increment } from "firebase/firestore";
+import { doc, updateDoc, increment } from "firebase/firestore";
 import { useNuxtApp } from "#app";  // Use the global context
 
-// Function to retrieve a question by ID
-export async function getQuestionById(id) {
-  const { $questionsRef } = useNuxtApp(); // Access the injected questionsRef
-
-  if (!id || typeof id !== "string") {
-    throw new Error("Invalid ID. ID must be a non-empty string.");
-  }
-
-  const questionSnapshot = await getDoc(doc($questionsRef, id));
-
-  if (!questionSnapshot.exists()) {
-    // Distinguish "this question has no stats yet" from "Firestore is down" so
-    // the caller can keep showing community stats for the questions that do.
-    const error = new Error(`No stats document for question ${id}`);
-    error.code = "not-found";
-    throw error;
-  }
-  return questionSnapshot.data();
-}
+// Reads live in stores/questionstats.js and come from the shipped /stats.json
+// snapshot, not from Firestore. Only the counter writes go through here.
 
 // Counter updates are fire-and-forget.
 //

@@ -98,6 +98,19 @@ const bad = questions.filter((q) => /<p[A-Za-z]|<\/(?![A-Za-z]|>)/.test(q.descri
 if (bad.length) die(`malformed explanation markup in ${bad.slice(0, 5).map((q) => q.id)} - run scripts/fix_l3_html.py`);
 
 console.log(`    ${questions.length} questions, authors hashed, markup clean`);
+
+// The community stats the app shows come from this snapshot, not Firestore.
+const statsPath = process.argv[2].replace(/l3\.json$/, "stats.json");
+let stats;
+try {
+  stats = JSON.parse(require("node:fs").readFileSync(statsPath, "utf8"));
+} catch (e) {
+  die(`stats.json missing or unreadable (${e.message}) - run node scripts/fetch_stats_snapshot.mjs`);
+}
+if (!stats.questions || typeof stats.questions !== "object") die("stats.json has no questions object");
+const ageDays = (Date.now() - Date.parse(stats.fetched_at)) / 86400000;
+if (!(ageDays < 60)) console.warn(`::warning::stats.json is ${Math.round(ageDays)} days old - is the refresh workflow running?`);
+console.log(`    stats snapshot: ${Object.keys(stats.questions).length} questions, ${Math.round(ageDays)} days old`);
 JS
 
 echo "==> Built $(du -sh "$OUT" | cut -f1) into $OUT"
